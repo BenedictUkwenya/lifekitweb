@@ -12,7 +12,7 @@ import {
 // ── Constants ───────────────────────────────────────────────────────────
 const PRIMARY   = '#89273B'
 const PRIMARY_D = '#6e1e2f'
-const API_BASE  = 'http://localhost:3000'
+const API_BASE  = import.meta.env.VITE_API_URL
 
 // ── Axios instance with auth ─────────────────────────────────────────────
 const api = axios.create({ baseURL: API_BASE })

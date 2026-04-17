@@ -13,7 +13,7 @@ import {
 } from 'lucide-react'
 
 const PRIMARY = '#89273B'
-const API = 'http://localhost:3000'
+const API = import.meta.env.VITE_API_URL
 
 const TESTIMONIALS = [
   {

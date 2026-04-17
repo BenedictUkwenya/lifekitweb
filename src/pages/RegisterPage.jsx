@@ -15,7 +15,7 @@ import {
 
 const PRIMARY = '#89273B'
 const PRIMARY_D = '#6e1e2f'
-const API = 'http://localhost:3000'
+const API = import.meta.env.VITE_API_URL
 
 const TRUST_BADGES = [
   { icon: <Percent size={18} />, text: '0% commission — forever, as a founding member' },
