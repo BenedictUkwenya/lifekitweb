@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import axios from 'axios'
 import {
   Sparkles,
@@ -12,20 +13,14 @@ import {
   TrendingUp,
   Percent,
 } from 'lucide-react'
+import LanguageSwitcher from '../components/LanguageSwitcher'
 
 const PRIMARY = '#89273B'
-const PRIMARY_D = '#6e1e2f'
 const API = import.meta.env.VITE_API_URL
-
-const TRUST_BADGES = [
-  { icon: <Percent size={18} />, text: '0% commission — forever, as a founding member' },
-  { icon: <ShieldCheck size={18} />, text: '1 full year of Pro tier, completely free' },
-  { icon: <TrendingUp size={18} />, text: 'AI-powered income insights from day one' },
-  { icon: <Sparkles size={18} />, text: 'AI Autofill creates your listings in seconds' },
-]
 
 export default function RegisterPage() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
 
   const [form, setForm] = useState({ full_name: '', email: '', password: '', confirm_password: '' })
   const [showPw, setShowPw] = useState(false)
@@ -40,11 +35,11 @@ export default function RegisterPage() {
   }
 
   const validate = () => {
-    if (!form.full_name.trim()) return 'Full name is required.'
-    if (!form.email.trim()) return 'Email is required.'
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return 'Enter a valid email address.'
-    if (form.password.length < 6) return 'Password must be at least 6 characters.'
-    if (form.password !== form.confirm_password) return 'Passwords do not match.'
+    if (!form.full_name.trim()) return t('register.errorFullName')
+    if (!form.email.trim()) return t('register.errorEmail')
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return t('register.errorEmailInvalid')
+    if (form.password.length < 6) return t('register.errorPasswordShort')
+    if (form.password !== form.confirm_password) return t('register.errorPasswordMatch')
     return null
   }
 
@@ -67,14 +62,21 @@ export default function RegisterPage() {
         is_web_signup: true,
       })
 
-      setSuccess('Account created! Please check your email to confirm, then sign in.')
+      setSuccess(t('register.successMessage'))
       setTimeout(() => navigate('/login'), 3500)
     } catch (err) {
-      setError(err.response?.data?.error || 'Something went wrong. Please try again.')
+      setError(err.response?.data?.error || t('register.errorGeneric'))
     } finally {
       setLoading(false)
     }
   }
+
+  const TRUST_BADGES = [
+    { icon: <Percent size={18} />, text: t('register.trust1') },
+    { icon: <ShieldCheck size={18} />, text: t('register.trust2') },
+    { icon: <TrendingUp size={18} />, text: t('register.trust3') },
+    { icon: <Sparkles size={18} />, text: t('register.trust4') },
+  ]
 
   return (
     <div className="min-h-screen flex">
@@ -83,33 +85,31 @@ export default function RegisterPage() {
         className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 xl:p-16 relative overflow-hidden"
         style={{ backgroundColor: PRIMARY }}
       >
-        {/* Background circles */}
         <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full opacity-10 bg-white" />
         <div className="absolute -bottom-16 -left-16 w-72 h-72 rounded-full opacity-10 bg-white" />
 
-        {/* Logo */}
-        <Link to="/" className="flex items-center gap-2.5 relative z-10">
-          <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
-            <Sparkles size={18} color="#fff" />
-          </div>
-          <span className="text-white text-xl font-bold tracking-tight">LifeKit</span>
-        </Link>
+        <div className="flex items-center justify-between relative z-10">
+          <Link to="/" className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+              <Sparkles size={18} color="#fff" />
+            </div>
+            <span className="text-white text-xl font-bold tracking-tight">LifeKit</span>
+          </Link>
+          <LanguageSwitcher variant="light" />
+        </div>
 
-        {/* Main copy */}
         <div className="relative z-10">
           <div className="inline-flex items-center gap-2 bg-white/15 text-white text-xs font-semibold px-3 py-1.5 rounded-full mb-6">
             <Sparkles size={11} />
-            Early Adopter — Limited Spots
+            {t('register.sideEarlyAdopter')}
           </div>
           <h1 className="text-4xl xl:text-5xl font-extrabold text-white leading-tight">
-            Join LifeKit<br />Providers
+            {t('register.sideHeading1')}<br />{t('register.sideHeading2')}
           </h1>
           <p className="mt-4 text-white/75 text-lg leading-relaxed max-w-sm">
-            Get <span className="text-white font-bold">1 Year of Pro for Free</span> when you
-            register today. No credit card, no catch.
+            {t('register.sideBenefit', { highlight: t('register.sideBenefitHighlight') })}
           </p>
 
-          {/* Trust badges */}
           <ul className="mt-10 flex flex-col gap-4">
             {TRUST_BADGES.map((b) => (
               <li key={b.text} className="flex items-start gap-3">
@@ -122,60 +122,56 @@ export default function RegisterPage() {
           </ul>
         </div>
 
-        {/* Footer */}
         <p className="text-white/40 text-xs relative z-10">
-          © {new Date().getFullYear()} LifeKit. All rights reserved.
+          © {new Date().getFullYear()} LifeKit. {t('footer.rights')}
         </p>
       </div>
 
       {/* ── RIGHT PANEL ──────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col justify-center px-6 py-12 sm:px-10 xl:px-20 bg-white">
-        {/* Mobile logo */}
-        <div className="lg:hidden mb-8">
+        <div className="lg:hidden mb-8 flex items-center justify-between">
           <Link to="/" className="inline-flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: PRIMARY }}>
               <Sparkles size={15} color="#fff" />
             </div>
             <span className="font-bold text-gray-900">LifeKit</span>
           </Link>
+          <LanguageSwitcher />
         </div>
 
         <div className="w-full max-w-md mx-auto">
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900">Create your account</h2>
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900">{t('register.pageTitle')}</h2>
           <p className="mt-2 text-gray-500 text-sm">
-            Already have one?{' '}
+            {t('register.haveAccount')}{' '}
             <Link to="/login" className="font-semibold hover:underline" style={{ color: PRIMARY }}>
-              Sign in
+              {t('register.signIn')}
             </Link>
           </p>
 
           <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-5" noValidate>
-            {/* Full Name */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Full Name</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('register.fullNameLabel')}</label>
               <input
                 type="text"
                 name="full_name"
                 autoComplete="name"
-                placeholder="Jane Smith"
+                placeholder={t('register.fullNamePlaceholder')}
                 value={form.full_name}
                 onChange={handleChange}
                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:ring-2 focus:border-transparent bg-gray-50 focus:bg-white"
-                style={{ '--tw-ring-color': PRIMARY }}
                 onFocus={(e) => { e.target.style.boxShadow = `0 0 0 3px ${PRIMARY}25`; e.target.style.borderColor = PRIMARY }}
                 onBlur={(e) => { e.target.style.boxShadow = ''; e.target.style.borderColor = '' }}
                 disabled={loading}
               />
             </div>
 
-            {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email Address</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('register.emailLabel')}</label>
               <input
                 type="email"
                 name="email"
                 autoComplete="email"
-                placeholder="jane@example.com"
+                placeholder={t('register.emailPlaceholder')}
                 value={form.email}
                 onChange={handleChange}
                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 outline-none bg-gray-50 focus:bg-white transition"
@@ -185,15 +181,14 @@ export default function RegisterPage() {
               />
             </div>
 
-            {/* Password */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('register.passwordLabel')}</label>
               <div className="relative">
                 <input
                   type={showPw ? 'text' : 'password'}
                   name="password"
                   autoComplete="new-password"
-                  placeholder="Minimum 6 characters"
+                  placeholder={t('register.passwordPlaceholder')}
                   value={form.password}
                   onChange={handleChange}
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 pr-11 text-sm text-gray-900 placeholder-gray-400 outline-none bg-gray-50 focus:bg-white transition"
@@ -212,15 +207,14 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {/* Confirm Password */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Confirm Password</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('register.confirmPasswordLabel')}</label>
               <div className="relative">
                 <input
                   type={showConfirm ? 'text' : 'password'}
                   name="confirm_password"
                   autoComplete="new-password"
-                  placeholder="Repeat your password"
+                  placeholder={t('register.confirmPasswordPlaceholder')}
                   value={form.confirm_password}
                   onChange={handleChange}
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 pr-11 text-sm text-gray-900 placeholder-gray-400 outline-none bg-gray-50 focus:bg-white transition"
@@ -239,7 +233,6 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {/* Error */}
             {error && (
               <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3">
                 <span className="mt-0.5 flex-shrink-0 text-red-500">⚠</span>
@@ -247,7 +240,6 @@ export default function RegisterPage() {
               </div>
             )}
 
-            {/* Success */}
             {success && (
               <div className="flex items-start gap-2.5 bg-green-50 border border-green-200 text-green-700 text-sm rounded-xl px-4 py-3">
                 <CheckCircle2 size={16} className="mt-0.5 flex-shrink-0 text-green-500" />
@@ -255,20 +247,18 @@ export default function RegisterPage() {
               </div>
             )}
 
-            {/* Pro badge reminder */}
             <div
               className="flex items-center gap-3 rounded-xl px-4 py-3 border"
               style={{ backgroundColor: `${PRIMARY}08`, borderColor: `${PRIMARY}30` }}
             >
               <Sparkles size={16} style={{ color: PRIMARY }} className="flex-shrink-0" />
               <p className="text-xs text-gray-600">
-                You're signing up as a{' '}
-                <span className="font-bold" style={{ color: PRIMARY }}>Founding Provider</span>
-                {' '}— 0% commission + 1 year Pro free.
+                {t('register.youreSigningUp')}{' '}
+                <span className="font-bold" style={{ color: PRIMARY }}>{t('register.foundingBadge')}</span>
+                {t('register.foundingText')}
               </p>
             </div>
 
-            {/* Submit */}
             <button
               type="submit"
               disabled={loading || !!success}
@@ -276,17 +266,17 @@ export default function RegisterPage() {
               style={{ backgroundColor: PRIMARY }}
             >
               {loading ? (
-                <><Loader2 size={17} className="animate-spin" /> Creating account…</>
+                <><Loader2 size={17} className="animate-spin" /> {t('register.submittingButton')}</>
               ) : (
-                <>Create my free account <ArrowRight size={16} /></>
+                <>{t('register.submitButton')} <ArrowRight size={16} /></>
               )}
             </button>
 
             <p className="text-center text-xs text-gray-400">
-              By registering you agree to our{' '}
-              <a href="#" className="underline hover:text-gray-600">Terms of Service</a>
-              {' '}and{' '}
-              <a href="#" className="underline hover:text-gray-600">Privacy Policy</a>.
+              {t('register.termsText')}{' '}
+              <a href="#" className="underline hover:text-gray-600">{t('register.termsLink')}</a>
+              {' '}{t('register.andText')}{' '}
+              <a href="#" className="underline hover:text-gray-600">{t('register.privacyLink')}</a>.
             </p>
           </form>
         </div>
@@ -294,4 +284,3 @@ export default function RegisterPage() {
     </div>
   )
 }
-

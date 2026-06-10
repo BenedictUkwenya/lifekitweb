@@ -15,3 +15,32 @@
     @apply antialiased text-gray-800 bg-white;
   }
 }
+
+/* ── Lenis smooth scroll ─────────────────────────────────────────────── */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+/* ── Ambient hero background ─────────────────────────────────────────── */
+@keyframes ambient-float {
+  0%   { transform: translate(-8%, -6%) scale(1); }
+  50%  { transform: translate(8%, 8%) scale(1.18); }
+  100% { transform: translate(-8%, -6%) scale(1); }
+}
+.ambient-blob {
+  background:
+    radial-gradient(40% 50% at 30% 35%, rgba(137, 39, 59, 0.10), transparent 70%),
+    radial-gradient(45% 55% at 70% 60%, rgba(176, 51, 81, 0.08), transparent 70%);
+  animation: ambient-float 20s ease-in-out infinite;
+  will-change: transform;
+}

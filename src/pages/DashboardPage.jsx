@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, Fragment } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import axios from 'axios'
 import {
   Sparkles, LogOut, PlusCircle, Briefcase, Settings,
@@ -8,32 +9,19 @@ import {
   LayoutGrid, Clock, Eye, Pencil, MoreVertical,
   Plus, Trash2,
 } from 'lucide-react'
+import LanguageSwitcher from '../components/LanguageSwitcher'
 
-// ── Constants ───────────────────────────────────────────────────────────
 const PRIMARY   = '#89273B'
-const PRIMARY_D = '#6e1e2f'
 const API_BASE  = import.meta.env.VITE_API_URL
 
-// ── Axios instance with auth ─────────────────────────────────────────────
 const api = axios.create({ baseURL: API_BASE })
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('provider_token')
   if (token) config.headers.Authorization = `Bearer ${token}`
+  config.headers['Accept-Language'] = localStorage.getItem('lifekit_lang') ?? 'en'
   return config
 })
 
-// ── Helpers ──────────────────────────────────────────────────────────────
-const statusMeta = (status) => {
-  switch ((status || '').toLowerCase()) {
-    case 'active':   return { label: 'Active',   bg: 'bg-green-100',  text: 'text-green-700' }
-    case 'pending':  return { label: 'Pending',  bg: 'bg-yellow-100', text: 'text-yellow-700' }
-    case 'draft':    return { label: 'Draft',    bg: 'bg-gray-100',   text: 'text-gray-600' }
-    case 'inactive': return { label: 'Inactive', bg: 'bg-red-100',    text: 'text-red-600' }
-    default:         return { label: status,     bg: 'bg-gray-100',   text: 'text-gray-600' }
-  }
-}
-
-// ── Toast ────────────────────────────────────────────────────────────────
 function Toast({ toasts }) {
   return (
     <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2 pointer-events-none">
@@ -53,16 +41,15 @@ function Toast({ toasts }) {
   )
 }
 
-// ── Sidebar ──────────────────────────────────────────────────────────────
 function Sidebar({ activeTab, setActiveTab }) {
+  const { t } = useTranslation()
   const NAV = [
-    { id: 'services', label: 'My Services', icon: <Briefcase size={18} /> },
-    { id: 'settings', label: 'Settings',    icon: <Settings size={18} /> },
+    { id: 'services', label: t('dashboard.myServices'), icon: <Briefcase size={18} /> },
+    { id: 'settings', label: t('dashboard.settings'),   icon: <Settings size={18} /> },
   ]
 
   return (
     <aside className="hidden md:flex flex-col w-60 min-h-screen border-r border-gray-100 bg-white">
-      {/* Logo */}
       <Link to="/" className="flex items-center gap-2.5 px-6 h-16 border-b border-gray-100">
         <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: PRIMARY }}>
           <Sparkles size={15} color="#fff" />
@@ -70,7 +57,6 @@ function Sidebar({ activeTab, setActiveTab }) {
         <span className="font-bold text-gray-900 text-base tracking-tight">LifeKit</span>
       </Link>
 
-      {/* Nav */}
       <nav className="flex-1 px-3 py-4 flex flex-col gap-1">
         {NAV.map((item) => {
           const active = activeTab === item.id
@@ -90,13 +76,12 @@ function Sidebar({ activeTab, setActiveTab }) {
       </nav>
 
       <div className="px-6 py-4 border-t border-gray-100">
-        <p className="text-xs text-gray-400">Provider Portal v1.0</p>
+        <p className="text-xs text-gray-400">{t('dashboard.portalVersion')}</p>
       </div>
     </aside>
   )
 }
 
-// ── Error Banner (shared sub-component) ──────────────────────────────────
 function ErrorBanner({ msg }) {
   return (
     <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3">
@@ -106,13 +91,11 @@ function ErrorBanner({ msg }) {
   )
 }
 
-// ── Create Service Wizard (3-step) ────────────────────────────────────────
 function CreateServiceWizard({ onClose, onSuccess, addToast }) {
-  // step: 1 | 2 | 3 | 'saving' | 'done'
+  const { t } = useTranslation()
   const [step, setStep]               = useState(1)
   const [error, setError]             = useState('')
 
-  // Step 1 — Main Category
   const [mainCats, setMainCats]         = useState([])
   const [loadingMain, setLoadingMain]   = useState(true)
   const [selectedMain, setSelectedMain] = useState(null)
@@ -120,13 +103,11 @@ function CreateServiceWizard({ onClose, onSuccess, addToast }) {
   const [reqForm, setReqForm]           = useState({ category_name: '', description: '' })
   const [reqLoading, setReqLoading]     = useState(false)
 
-  // Step 2 — Sub Categories
   const [subCats, setSubCats]             = useState([])
   const [loadingSubcats, setLoadingSubcats] = useState(false)
   const [selectedSubIds, setSelectedSubIds] = useState(new Set())
   const [creatingDrafts, setCreatingDrafts] = useState(false)
 
-  // Step 3 — Edit Details
   const [draftService, setDraftService]   = useState(null)
   const [isStandalone, setIsStandalone]   = useState(false)
   const [title, setTitle]                 = useState('')
@@ -141,21 +122,19 @@ function CreateServiceWizard({ onClose, onSuccess, addToast }) {
   const fileRef = useRef()
 
   const SERVICE_TYPES = ['Home Service (HS)', 'Outdoor', 'Both']
-  const STEP_LABELS   = ['Select Category', 'Sub-Categories', 'Service Details']
+  const STEP_LABELS   = [t('wizard.stepCategory'), t('wizard.stepSubCategory'), t('wizard.stepDetails')]
   const stepNum = typeof step === 'number' ? step : 3
 
   const fieldFocus = (e) => { e.target.style.boxShadow = `0 0 0 3px ${PRIMARY}25`; e.target.style.borderColor = PRIMARY }
   const fieldBlur  = (e) => { e.target.style.boxShadow = ''; e.target.style.borderColor = '' }
 
-  // Fetch main categories on mount
   useEffect(() => {
     api.get('/home/categories')
       .then(({ data }) => setMainCats(data.categories || []))
-      .catch(() => addToast('Could not load categories.', 'error'))
+      .catch(() => addToast(t('dashboard.failedLoadCategories'), 'error'))
       .finally(() => setLoadingMain(false))
   }, [])
 
-  // ── Step 1 ───────────────────────────────────────────────────────────
   const selectMainCat = async (cat) => {
     setError('')
     setSelectedMain(cat)
@@ -166,29 +145,28 @@ function CreateServiceWizard({ onClose, onSuccess, addToast }) {
       const { data } = await api.get(`/home/categories/children/${cat.id}`)
       setSubCats((data.categories || []).sort((a, b) => a.name.localeCompare(b.name)))
     } catch {
-      setError('Failed to load sub-categories.')
+      setError(t('wizard.failedLoadSubcats'))
     } finally {
       setLoadingSubcats(false)
     }
   }
 
   const submitCategoryRequest = async () => {
-    if (!reqForm.category_name.trim()) return setError('Category name is required.')
+    if (!reqForm.category_name.trim()) return setError(t('wizard.categoryNameRequired'))
     setError('')
     setReqLoading(true)
     try {
       await api.post('/services/request-category', reqForm)
-      addToast("Category request submitted! We'll review it soon.")
+      addToast(t('wizard.categoryRequestSuccess'))
       setRequestMode(false)
       setReqForm({ category_name: '', description: '' })
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to submit request.')
+      setError(err.response?.data?.error || t('wizard.failedSubmitRequest'))
     } finally {
       setReqLoading(false)
     }
   }
 
-  // ── Step 2 ───────────────────────────────────────────────────────────
   const toggleSub = (id) =>
     setSelectedSubIds(prev => {
       const next = new Set(prev)
@@ -197,7 +175,7 @@ function CreateServiceWizard({ onClose, onSuccess, addToast }) {
     })
 
   const createDrafts = async () => {
-    if (!selectedSubIds.size) return setError('Select at least one sub-category.')
+    if (!selectedSubIds.size) return setError(t('wizard.selectAtLeastOne'))
     setError('')
     setCreatingDrafts(true)
     try {
@@ -221,20 +199,19 @@ function CreateServiceWizard({ onClose, onSuccess, addToast }) {
       setStep(3)
     } catch (err) {
       if (err.response?.status === 403) {
-        setError('Plan limit reached. You cannot add more services on your current plan.')
+        setError(t('wizard.planLimitReached'))
       } else {
-        setError(err.response?.data?.error || err.message || 'Failed to create service.')
+        setError(err.response?.data?.error || err.message || t('wizard.failedCreateService'))
       }
     } finally {
       setCreatingDrafts(false)
     }
   }
 
-  // ── Step 3 ───────────────────────────────────────────────────────────
   const handleFile = (e) => {
     const f = e.target.files?.[0]
     if (!f) return
-    if (f.size > 5 * 1024 * 1024) { setError('Image must be under 5 MB.'); return }
+    if (f.size > 5 * 1024 * 1024) { setError(t('wizard.imageTooLarge')); return }
     setImageFile(f)
     setImagePreview(URL.createObjectURL(f))
   }
@@ -245,14 +222,14 @@ function CreateServiceWizard({ onClose, onSuccess, addToast }) {
     setServiceOptions(p => p.map((o, idx) => idx === i ? { ...o, [field]: val } : o))
 
   const handleSave = async () => {
-    if (!title.trim()) return setError('Service title is required.')
-    if (!isStandalone && basePrice !== '' && isNaN(Number(basePrice))) return setError('Enter a valid price.')
+    if (!title.trim()) return setError(t('wizard.serviceTitleRequired'))
+    if (!isStandalone && basePrice !== '' && isNaN(Number(basePrice))) return setError(t('wizard.invalidPrice'))
     setError('')
     setStep('saving')
     try {
       let imageUrls = []
       if (imageFile) {
-        setSaveLabel('Uploading image…')
+        setSaveLabel(t('wizard.uploadingImage'))
         const fd = new FormData()
         fd.append('file', imageFile)
         const { data: up } = await api.post('/storage/upload/services', fd, {
@@ -260,7 +237,7 @@ function CreateServiceWizard({ onClose, onSuccess, addToast }) {
         })
         imageUrls = [up.url]
       }
-      setSaveLabel('Publishing service…')
+      setSaveLabel(t('wizard.publishingService'))
       let finalPrice = 0
       if (isStandalone) {
         const prices = serviceOptions.map(o => parseFloat(o.price) || 0).filter(p => p > 0)
@@ -283,30 +260,30 @@ function CreateServiceWizard({ onClose, onSuccess, addToast }) {
       setStep('done')
       setTimeout(() => { onSuccess(); onClose() }, 900)
     } catch (err) {
-      setError(err.response?.data?.error || err.message || 'Failed to save service.')
+      setError(err.response?.data?.error || err.message || t('wizard.failedSaveService'))
       setStep(3)
     }
   }
 
   const canClose = step !== 'saving'
 
+  const wizardHeader = () => {
+    if (step === 1 && !requestMode) return t('wizard.headerSelectCategory')
+    if (step === 1 && requestMode)  return t('wizard.headerRequestCategory')
+    if (step === 2) return t('wizard.headerSubCategories', { name: selectedMain?.name })
+    if (step === 3) return t('wizard.headerDetails')
+    if (step === 'saving') return t('wizard.headerSaving')
+    return t('wizard.headerDone')
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={canClose ? onClose : undefined} />
 
       <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[92vh] flex flex-col overflow-hidden">
-
-        {/* ── Header ────────────────────────────── */}
         <div className="px-6 pt-5 pb-4 border-b border-gray-100 flex-shrink-0">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-gray-900">
-              {step === 1 && !requestMode && 'Select a Category'}
-              {step === 1 && requestMode && 'Request a Category'}
-              {step === 2 && `Sub-categories · ${selectedMain?.name}`}
-              {step === 3 && 'Service Details'}
-              {step === 'saving' && 'Publishing…'}
-              {step === 'done' && 'Service Published!'}
-            </h2>
+            <h2 className="text-lg font-bold text-gray-900">{wizardHeader()}</h2>
             {canClose && (
               <button onClick={onClose} className="p-2 rounded-xl text-gray-400 hover:bg-gray-100 transition-colors">
                 <X size={18} />
@@ -314,7 +291,6 @@ function CreateServiceWizard({ onClose, onSuccess, addToast }) {
             )}
           </div>
 
-          {/* Step pip indicators */}
           <div className="flex items-center gap-1.5">
             {STEP_LABELS.map((label, i) => {
               const n    = i + 1
@@ -330,8 +306,7 @@ function CreateServiceWizard({ onClose, onSuccess, addToast }) {
                     >
                       {done ? '✓' : n}
                     </div>
-                    <span className={`text-xs font-medium whitespace-nowrap hidden sm:inline
-                      ${active ? 'text-gray-800' : 'text-gray-400'}`}>
+                    <span className={`text-xs font-medium whitespace-nowrap hidden sm:inline ${active ? 'text-gray-800' : 'text-gray-400'}`}>
                       {label}
                     </span>
                   </div>
@@ -342,19 +317,15 @@ function CreateServiceWizard({ onClose, onSuccess, addToast }) {
           </div>
         </div>
 
-        {/* ── Body ──────────────────────────────── */}
         <div className="flex-1 overflow-y-auto">
-
-          {/* Saving / Done */}
           {(step === 'saving' || step === 'done') && (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
               {step === 'saving'
-                ? <><Loader2 size={36} className="animate-spin" style={{ color: PRIMARY }} /><p className="text-sm text-gray-500 font-medium">{saveLabel || 'Publishing…'}</p></>
-                : <><CheckCircle2 size={40} className="text-green-500" /><p className="text-base font-semibold text-gray-800">Service published!</p></>}
+                ? <><Loader2 size={36} className="animate-spin" style={{ color: PRIMARY }} /><p className="text-sm text-gray-500 font-medium">{saveLabel || t('wizard.savingLabel')}</p></>
+                : <><CheckCircle2 size={40} className="text-green-500" /><p className="text-base font-semibold text-gray-800">{t('wizard.doneLabel')}</p></>}
             </div>
           )}
 
-          {/* ── STEP 1: Main Categories ── */}
           {step === 1 && !requestMode && (
             <div className="p-5 flex flex-col gap-3">
               {loadingMain ? (
@@ -370,10 +341,7 @@ function CreateServiceWizard({ onClose, onSuccess, addToast }) {
                         onClick={() => selectMainCat(cat)}
                         className="flex items-center gap-3 p-3.5 rounded-2xl border border-gray-100 hover:shadow-md hover:border-transparent text-left transition-all group"
                       >
-                        <div
-                          className="w-9 h-9 rounded-xl flex-shrink-0 flex items-center justify-center"
-                          style={{ backgroundColor: `${PRIMARY}12` }}
-                        >
+                        <div className="w-9 h-9 rounded-xl flex-shrink-0 flex items-center justify-center" style={{ backgroundColor: `${PRIMARY}12` }}>
                           <Tag size={15} style={{ color: PRIMARY }} />
                         </div>
                         <span className="text-sm font-semibold text-gray-800 leading-snug flex-1">{cat.name}</span>
@@ -386,27 +354,26 @@ function CreateServiceWizard({ onClose, onSuccess, addToast }) {
                     onClick={() => { setRequestMode(true); setError('') }}
                     className="mt-1 w-full py-3 rounded-2xl border-2 border-dashed border-gray-200 text-sm font-medium text-gray-500 hover:border-gray-300 hover:bg-gray-50 transition-all"
                   >
-                    Can't find your service? Request it →
+                    {t('wizard.cantFind')}
                   </button>
                 </>
               )}
             </div>
           )}
 
-          {/* ── STEP 1: Request Category Form ── */}
           {step === 1 && requestMode && (
             <div className="p-5 flex flex-col gap-4">
               <button
                 onClick={() => { setRequestMode(false); setError('') }}
                 className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors self-start"
               >
-                ← Back to categories
+                {t('wizard.backToCategories')}
               </button>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Category Name</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t('wizard.categoryNameLabel')}</label>
                 <input
                   type="text"
-                  placeholder="e.g. Wedding Photography"
+                  placeholder={t('wizard.categoryNamePlaceholder')}
                   value={reqForm.category_name}
                   onChange={e => setReqForm(p => ({ ...p, category_name: e.target.value }))}
                   onFocus={fieldFocus} onBlur={fieldBlur}
@@ -414,10 +381,10 @@ function CreateServiceWizard({ onClose, onSuccess, addToast }) {
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Description (optional)</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t('wizard.descriptionLabel')}</label>
                 <textarea
                   rows={3}
-                  placeholder="Tell us more about this service type…"
+                  placeholder={t('wizard.descriptionPlaceholder')}
                   value={reqForm.description}
                   onChange={e => setReqForm(p => ({ ...p, description: e.target.value }))}
                   onFocus={fieldFocus} onBlur={fieldBlur}
@@ -432,27 +399,26 @@ function CreateServiceWizard({ onClose, onSuccess, addToast }) {
                 style={{ backgroundColor: PRIMARY }}
               >
                 {reqLoading && <Loader2 size={15} className="animate-spin" />}
-                Submit Request
+                {t('wizard.submitRequest')}
               </button>
             </div>
           )}
 
-          {/* ── STEP 2: Sub Categories ── */}
           {step === 2 && (
             <div className="p-5 flex flex-col gap-4">
               <button
                 onClick={() => { setStep(1); setError('') }}
                 className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors self-start"
               >
-                ← Back
+                {t('wizard.back')}
               </button>
               {loadingSubcats ? (
                 <div className="flex justify-center py-10"><Loader2 size={26} className="animate-spin text-gray-400" /></div>
               ) : subCats.length === 0 ? (
-                <p className="text-center text-gray-400 text-sm py-8">No sub-categories found.</p>
+                <p className="text-center text-gray-400 text-sm py-8">{t('wizard.noSubCategories')}</p>
               ) : (
                 <div className="flex flex-col gap-2">
-                  <p className="text-xs text-gray-500 font-medium mb-1">Select all that apply:</p>
+                  <p className="text-xs text-gray-500 font-medium mb-1">{t('wizard.selectAllApply')}</p>
                   {subCats.map((c) => {
                     const checked = selectedSubIds.has(c.id)
                     return (
@@ -464,8 +430,7 @@ function CreateServiceWizard({ onClose, onSuccess, addToast }) {
                         style={checked ? { backgroundColor: `${PRIMARY}10`, borderColor: `${PRIMARY}35` } : {}}
                       >
                         <div
-                          className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all
-                            ${checked ? 'border-transparent' : 'border-gray-300'}`}
+                          className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all ${checked ? 'border-transparent' : 'border-gray-300'}`}
                           style={checked ? { backgroundColor: PRIMARY } : {}}
                         >
                           {checked && <span className="text-white text-[10px] font-bold leading-none">✓</span>}
@@ -484,22 +449,19 @@ function CreateServiceWizard({ onClose, onSuccess, addToast }) {
                 style={{ backgroundColor: PRIMARY }}
               >
                 {creatingDrafts
-                  ? <><Loader2 size={16} className="animate-spin" /> Creating…</>
-                  : `Next → (${selectedSubIds.size} selected)`}
+                  ? <><Loader2 size={16} className="animate-spin" /> {t('wizard.creating')}</>
+                  : t('wizard.nextSelected', { count: selectedSubIds.size })}
               </button>
             </div>
           )}
 
-          {/* ── STEP 3: Edit Details ── */}
           {step === 3 && (
             <div className="p-5 flex flex-col gap-4">
-
-              {/* Title */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Service Title</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t('wizard.serviceTitleLabel')}</label>
                 <input
                   type="text"
-                  placeholder="e.g. Bridal Hair Styling"
+                  placeholder={t('wizard.serviceTitlePlaceholder')}
                   value={title}
                   onChange={e => { setTitle(e.target.value); setError('') }}
                   onFocus={fieldFocus} onBlur={fieldBlur}
@@ -507,37 +469,29 @@ function CreateServiceWizard({ onClose, onSuccess, addToast }) {
                 />
               </div>
 
-              {/* Pricing type toggle */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Pricing Type</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">{t('wizard.pricingTypeLabel')}</label>
                 <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
                   {['fixed', 'hourly'].map(pt => (
                     <button
                       key={pt}
                       type="button"
                       onClick={() => setPricingType(pt)}
-                      className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all
-                        ${pricingType === pt ? 'bg-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                      className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${pricingType === pt ? 'bg-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                       style={pricingType === pt ? { color: PRIMARY } : {}}
                     >
-                      {pt === 'fixed' ? '💵 Fixed Price' : '⏱ Hourly Rate'}
+                      {pt === 'fixed' ? t('wizard.fixedPrice') : t('wizard.hourlyRate')}
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* ── Standalone: Service Options ── */}
               {isStandalone && (
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm font-semibold text-gray-700">Service Options</label>
-                    <button
-                      type="button"
-                      onClick={addOption}
-                      className="text-xs font-bold flex items-center gap-1 hover:opacity-80 transition-opacity"
-                      style={{ color: PRIMARY }}
-                    >
-                      <Plus size={13} /> Add Option
+                    <label className="text-sm font-semibold text-gray-700">{t('wizard.serviceOptionsLabel')}</label>
+                    <button type="button" onClick={addOption} className="text-xs font-bold flex items-center gap-1 hover:opacity-80 transition-opacity" style={{ color: PRIMARY }}>
+                      <Plus size={13} /> {t('wizard.addOption')}
                     </button>
                   </div>
                   <div className="flex flex-col gap-2">
@@ -545,7 +499,7 @@ function CreateServiceWizard({ onClose, onSuccess, addToast }) {
                       <div key={i} className="flex items-center gap-2">
                         <input
                           type="text"
-                          placeholder="Option name (e.g. Box Braids)"
+                          placeholder={t('wizard.optionNamePlaceholder')}
                           value={opt.name}
                           onChange={e => updateOption(i, 'name', e.target.value)}
                           onFocus={fieldFocus} onBlur={fieldBlur}
@@ -554,25 +508,16 @@ function CreateServiceWizard({ onClose, onSuccess, addToast }) {
                         <div className="relative w-28 flex-shrink-0">
                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
                           <input
-                            type="number"
-                            min="0"
-                            placeholder="0.00"
+                            type="number" min="0" placeholder="0.00"
                             value={opt.price}
                             onChange={e => updateOption(i, 'price', e.target.value)}
                             onFocus={fieldFocus} onBlur={fieldBlur}
-                            className={`w-full border border-gray-200 rounded-xl pl-7 text-sm bg-gray-50 outline-none transition py-2.5
-                              ${pricingType === 'hourly' ? 'pr-9' : 'pr-3'}`}
+                            className={`w-full border border-gray-200 rounded-xl pl-7 text-sm bg-gray-50 outline-none transition py-2.5 ${pricingType === 'hourly' ? 'pr-9' : 'pr-3'}`}
                           />
-                          {pricingType === 'hourly' && (
-                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">/hr</span>
-                          )}
+                          {pricingType === 'hourly' && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">/hr</span>}
                         </div>
                         {serviceOptions.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => removeOption(i)}
-                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all flex-shrink-0"
-                          >
+                          <button type="button" onClick={() => removeOption(i)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all flex-shrink-0">
                             <Trash2 size={15} />
                           </button>
                         )}
@@ -582,38 +527,31 @@ function CreateServiceWizard({ onClose, onSuccess, addToast }) {
                 </div>
               )}
 
-              {/* ── Standard: Base Price ── */}
               {!isStandalone && (
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                    Base Price {pricingType === 'hourly' && <span className="text-gray-400 font-normal text-xs">(per hour)</span>}
+                    {t('wizard.basePriceLabel')} {pricingType === 'hourly' && <span className="text-gray-400 font-normal text-xs">{t('wizard.basePricePerHour')}</span>}
                   </label>
                   <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">$</span>
                     <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      placeholder={pricingType === 'fixed' ? 'Flat fee, e.g. 150' : 'Rate, e.g. 50'}
+                      type="number" min="0" step="0.01"
+                      placeholder={pricingType === 'fixed' ? t('wizard.flatFeePlaceholder') : t('wizard.ratePlaceholder')}
                       value={basePrice}
                       onChange={e => { setBasePrice(e.target.value); setError('') }}
                       onFocus={fieldFocus} onBlur={fieldBlur}
-                      className={`w-full border border-gray-200 rounded-xl pl-8 py-3 text-sm bg-gray-50 outline-none transition
-                        ${pricingType === 'hourly' ? 'pr-12' : 'pr-4'}`}
+                      className={`w-full border border-gray-200 rounded-xl pl-8 py-3 text-sm bg-gray-50 outline-none transition ${pricingType === 'hourly' ? 'pr-12' : 'pr-4'}`}
                     />
-                    {pricingType === 'hourly' && (
-                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm">/hr</span>
-                    )}
+                    {pricingType === 'hourly' && <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm">/hr</span>}
                   </div>
                 </div>
               )}
 
-              {/* Description */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Description</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t('wizard.descriptionFieldLabel')}</label>
                 <textarea
                   rows={3}
-                  placeholder="Describe what's included, your experience, what sets you apart…"
+                  placeholder={t('wizard.descriptionFieldPlaceholder')}
                   value={description}
                   onChange={e => setDescription(e.target.value)}
                   onFocus={fieldFocus} onBlur={fieldBlur}
@@ -621,28 +559,25 @@ function CreateServiceWizard({ onClose, onSuccess, addToast }) {
                 />
               </div>
 
-              {/* Service Type */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Service Type</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">{t('wizard.serviceTypeLabel')}</label>
                 <div className="flex gap-2 flex-wrap">
-                  {SERVICE_TYPES.map(t => (
+                  {SERVICE_TYPES.map(st => (
                     <button
-                      key={t}
+                      key={st}
                       type="button"
-                      onClick={() => setServiceType(t)}
-                      className={`px-4 py-2 rounded-xl text-sm font-semibold border-2 transition-all
-                        ${serviceType === t ? 'border-transparent text-white' : 'border-gray-100 text-gray-600 hover:border-gray-200 bg-white'}`}
-                      style={serviceType === t ? { backgroundColor: PRIMARY } : {}}
+                      onClick={() => setServiceType(st)}
+                      className={`px-4 py-2 rounded-xl text-sm font-semibold border-2 transition-all ${serviceType === st ? 'border-transparent text-white' : 'border-gray-100 text-gray-600 hover:border-gray-200 bg-white'}`}
+                      style={serviceType === st ? { backgroundColor: PRIMARY } : {}}
                     >
-                      {t}
+                      {st}
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* Image Upload */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Service Image (optional)</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t('wizard.serviceImageLabel')}</label>
                 <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
                 {imagePreview ? (
                   <div className="relative rounded-2xl overflow-hidden border border-gray-200 aspect-video bg-gray-50">
@@ -662,8 +597,8 @@ function CreateServiceWizard({ onClose, onSuccess, addToast }) {
                     className="w-full border-2 border-dashed border-gray-200 rounded-2xl py-7 flex flex-col items-center gap-2 text-gray-400 hover:border-gray-300 hover:bg-gray-50 transition-all"
                   >
                     <Upload size={20} />
-                    <span className="text-sm font-medium">Click to upload</span>
-                    <span className="text-xs">PNG, JPG, WebP · max 5 MB</span>
+                    <span className="text-sm font-medium">{t('wizard.clickToUpload')}</span>
+                    <span className="text-xs">{t('wizard.uploadHint')}</span>
                   </button>
                 )}
               </div>
@@ -676,7 +611,7 @@ function CreateServiceWizard({ onClose, onSuccess, addToast }) {
                   onClick={() => { setStep(2); setError('') }}
                   className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-all"
                 >
-                  ← Back
+                  {t('wizard.backBtn')}
                 </button>
                 <button
                   type="button"
@@ -684,7 +619,7 @@ function CreateServiceWizard({ onClose, onSuccess, addToast }) {
                   className="flex-1 py-3 rounded-xl text-white text-sm font-bold shadow-md hover:opacity-90 active:scale-[0.98] transition-all"
                   style={{ backgroundColor: PRIMARY }}
                 >
-                  Publish Service
+                  {t('wizard.publishService')}
                 </button>
               </div>
             </div>
@@ -695,15 +630,25 @@ function CreateServiceWizard({ onClose, onSuccess, addToast }) {
   )
 }
 
-// ── Service Card ─────────────────────────────────────────────────────────
 function ServiceCard({ service }) {
+  const { t } = useTranslation()
+
+  const statusMeta = (status) => {
+    switch ((status || '').toLowerCase()) {
+      case 'active':   return { label: t('dashboard.statusActive'),   bg: 'bg-green-100',  text: 'text-green-700' }
+      case 'pending':  return { label: t('dashboard.statusPending'),  bg: 'bg-yellow-100', text: 'text-yellow-700' }
+      case 'draft':    return { label: t('dashboard.statusDraft'),    bg: 'bg-gray-100',   text: 'text-gray-600' }
+      case 'inactive': return { label: t('dashboard.statusInactive'), bg: 'bg-red-100',    text: 'text-red-600' }
+      default:         return { label: status,                        bg: 'bg-gray-100',   text: 'text-gray-600' }
+    }
+  }
+
   const { label, bg, text } = statusMeta(service.status)
   const categoryName = service.service_categories?.name || '—'
   const thumb = service.image_urls?.[0]
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden group">
-      {/* Thumbnail */}
       <div className="aspect-video bg-gray-50 relative overflow-hidden">
         {thumb ? (
           <img src={thumb} alt={service.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
@@ -717,13 +662,12 @@ function ServiceCard({ service }) {
         </span>
       </div>
 
-      {/* Info */}
       <div className="p-4">
         <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-1">{categoryName}</p>
         <h3 className="font-bold text-gray-900 text-sm leading-snug line-clamp-2">{service.title || 'Untitled Service'}</h3>
         <div className="mt-3 flex items-center justify-between">
           <span className="text-base font-extrabold" style={{ color: PRIMARY }}>
-            {service.price ? `$${Number(service.price).toFixed(2)}` : 'Free / TBD'}
+            {service.price ? `$${Number(service.price).toFixed(2)}` : t('dashboard.freeTbd')}
           </span>
           <div className="flex items-center gap-1.5 text-gray-400">
             <Clock size={12} />
@@ -735,35 +679,30 @@ function ServiceCard({ service }) {
   )
 }
 
-// ── Empty State ───────────────────────────────────────────────────────────
 function EmptyState({ onCreateClick }) {
+  const { t } = useTranslation()
   return (
     <div className="flex flex-col items-center justify-center py-24 text-center px-4">
-      <div
-        className="w-20 h-20 rounded-3xl flex items-center justify-center mb-6"
-        style={{ backgroundColor: `${PRIMARY}12` }}
-      >
+      <div className="w-20 h-20 rounded-3xl flex items-center justify-center mb-6" style={{ backgroundColor: `${PRIMARY}12` }}>
         <Briefcase size={32} style={{ color: PRIMARY }} />
       </div>
-      <h3 className="text-xl font-bold text-gray-900 mb-2">No services yet</h3>
-      <p className="text-gray-500 text-sm max-w-xs leading-relaxed mb-8">
-        You haven't listed any services yet. Create your first offering to get discovered by customers.
-      </p>
+      <h3 className="text-xl font-bold text-gray-900 mb-2">{t('dashboard.emptyTitle')}</h3>
+      <p className="text-gray-500 text-sm max-w-xs leading-relaxed mb-8">{t('dashboard.emptySubtitle')}</p>
       <button
         onClick={onCreateClick}
         className="inline-flex items-center gap-2 text-white font-semibold px-6 py-3 rounded-xl shadow-lg hover:opacity-90 active:scale-[0.98] transition-all"
         style={{ backgroundColor: PRIMARY }}
       >
         <PlusCircle size={17} />
-        Create your first service
+        {t('dashboard.emptyButton')}
       </button>
     </div>
   )
 }
 
-// ── Main Dashboard ────────────────────────────────────────────────────────
 export default function DashboardPage() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
 
   const [activeTab, setActiveTab]       = useState('services')
   const [user, setUser]                 = useState(null)
@@ -772,7 +711,6 @@ export default function DashboardPage() {
   const [showModal, setShowModal]       = useState(false)
   const [toasts, setToasts]             = useState([])
 
-  // ── Auth guard ────────────────────────────────────────────────────────
   useEffect(() => {
     const token = localStorage.getItem('provider_token')
     const stored = localStorage.getItem('provider_user')
@@ -782,14 +720,12 @@ export default function DashboardPage() {
     }
   }, [navigate])
 
-  // ── Toast helper ──────────────────────────────────────────────────────
   const addToast = useCallback((message, type = 'success') => {
     const id = Date.now()
     setToasts((prev) => [...prev, { id, message, type }])
-    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4000)
+    setTimeout(() => setToasts((prev) => prev.filter((item) => item.id !== id)), 4000)
   }, [])
 
-  // ── Fetch services ────────────────────────────────────────────────────
   const fetchServices = useCallback(async () => {
     setLoadingServices(true)
     try {
@@ -799,72 +735,63 @@ export default function DashboardPage() {
       if (err.response?.status === 401) {
         navigate('/login')
       } else {
-        addToast('Failed to load services.', 'error')
+        addToast(t('dashboard.failedLoadServices'), 'error')
       }
     } finally {
       setLoadingServices(false)
     }
-  }, [navigate, addToast])
+  }, [navigate, addToast, t])
 
-  useEffect(() => {
-    fetchServices()
-  }, [fetchServices])
+  useEffect(() => { fetchServices() }, [fetchServices])
 
-  // ── Logout ────────────────────────────────────────────────────────────
   const handleLogout = () => {
     localStorage.removeItem('provider_token')
     localStorage.removeItem('provider_user')
     navigate('/login')
   }
 
-  // ── Derived display name ──────────────────────────────────────────────
   const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Provider'
 
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
-      {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Top header */}
         <header className="h-16 bg-white border-b border-gray-100 px-6 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
-            {/* Mobile logo */}
             <div className="md:hidden w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: PRIMARY }}>
               <Sparkles size={13} color="#fff" />
             </div>
             <div>
               <p className="text-sm font-bold text-gray-900 leading-none">{displayName}</p>
               <div className="flex items-center gap-1.5 mt-0.5">
-                <span
-                  className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white uppercase tracking-wider"
-                  style={{ backgroundColor: PRIMARY }}
-                >
-                  Pro Provider
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white uppercase tracking-wider" style={{ backgroundColor: PRIMARY }}>
+                  {t('dashboard.proProvider')}
                 </span>
               </div>
             </div>
           </div>
 
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 transition-colors px-3 py-2 rounded-xl hover:bg-gray-100"
-          >
-            <LogOut size={16} />
-            <span className="hidden sm:inline">Sign out</span>
-          </button>
+          <div className="flex items-center gap-3">
+            <LanguageSwitcher />
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 transition-colors px-3 py-2 rounded-xl hover:bg-gray-100"
+            >
+              <LogOut size={16} />
+              <span className="hidden sm:inline">{t('dashboard.signOut')}</span>
+            </button>
+          </div>
         </header>
 
-        {/* Page content */}
         <main className="flex-1 px-6 py-7 overflow-y-auto">
           {activeTab === 'services' && (
             <>
-              {/* Section header */}
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h1 className="text-xl font-extrabold text-gray-900">My Services</h1>
+                  <h1 className="text-xl font-extrabold text-gray-900">{t('dashboard.myServices')}</h1>
                   <p className="text-sm text-gray-500 mt-0.5">
-                    {services.length} service{services.length !== 1 ? 's' : ''} listed
+                    {t('dashboard.servicesCount_other', { count: services.length })}
                   </p>
                 </div>
                 <button
@@ -873,12 +800,11 @@ export default function DashboardPage() {
                   style={{ backgroundColor: PRIMARY }}
                 >
                   <PlusCircle size={16} />
-                  <span className="hidden sm:inline">New Service</span>
-                  <span className="sm:hidden">New</span>
+                  <span className="hidden sm:inline">{t('dashboard.newService')}</span>
+                  <span className="sm:hidden">{t('dashboard.newServiceShort')}</span>
                 </button>
               </div>
 
-              {/* Loading skeleton */}
               {loadingServices ? (
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                   {[...Array(4)].map((_, i) => (
@@ -909,28 +835,25 @@ export default function DashboardPage() {
               <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mb-4">
                 <Settings size={26} className="text-gray-400" />
               </div>
-              <h2 className="text-lg font-bold text-gray-900">Settings</h2>
-              <p className="text-gray-500 text-sm mt-2">Profile and account settings coming soon.</p>
+              <h2 className="text-lg font-bold text-gray-900">{t('dashboard.settingsTitle')}</h2>
+              <p className="text-gray-500 text-sm mt-2">{t('dashboard.settingsComingSoon')}</p>
             </div>
           )}
         </main>
       </div>
 
-      {/* Modal */}
       {showModal && (
         <CreateServiceWizard
           onClose={() => setShowModal(false)}
           onSuccess={() => {
             fetchServices()
-            addToast('Service published successfully!')
+            addToast(t('dashboard.servicePublished'))
           }}
           addToast={addToast}
         />
       )}
 
-      {/* Toasts */}
       <Toast toasts={toasts} />
     </div>
   )
 }
-

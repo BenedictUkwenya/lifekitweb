@@ -1,88 +1,282 @@
+import { Fragment, useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
+import { motion } from 'framer-motion'
+import { useGSAP } from '@gsap/react'
+import gsap from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import LanguageSwitcher from '../components/LanguageSwitcher'
 import {
-  Sparkles, ArrowRight, CheckCircle2, Menu, X,
-  TrendingUp, Users, Repeat2, ShoppingCart, Brain,
-  Zap, MessageCircle, Star, Percent,
-  ShieldCheck, Smartphone,
+  ArrowRight, ArrowUp, Star, Users, Calendar,
+  Repeat2, Clock, Shield, Store, Sparkles, Menu, X
 } from 'lucide-react'
-import { useState } from 'react'
 
-const PRIMARY = '#89273B'
+gsap.registerPlugin(ScrollTrigger, useGSAP)
 
-// ── Phone Mockup shell ─────────────────────────────────────────────────
-function PhoneMockup({ src, alt = 'App screen', className = '' }) {
+const P = '#89273B'
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Motion helpers
+// ─────────────────────────────────────────────────────────────────────────────
+// Product decision: animations always play, even when the OS requests reduced
+// motion. Flip RESPECT_REDUCED_MOTION back to true to restore accessibility.
+const RESPECT_REDUCED_MOTION = false
+
+const prefersReduced = () =>
+  RESPECT_REDUCED_MOTION &&
+  typeof window !== 'undefined' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+const isMobile = () =>
+  typeof window !== 'undefined' && window.innerWidth < 768
+
+/**
+ * Reveals children matching `selector` with a staggered fade + translateY when
+ * the scope scrolls into view. Plays once, respects reduced motion, and lightens
+ * the stagger on mobile. Never affects layout (only opacity/transform).
+ */
+function useScrollReveal(scope, { selector = '.reveal-item', y = 30, stagger = 0.18 } = {}) {
+  useGSAP(() => {
+    const targets = gsap.utils.toArray(selector, scope.current)
+    if (!targets.length) return
+
+    if (prefersReduced()) {
+      gsap.set(targets, { opacity: 1, y: 0 })
+      return
+    }
+
+    gsap.from(targets, {
+      opacity: 0,
+      y,
+      duration: 0.6,
+      ease: 'power3.out',
+      stagger: isMobile() ? Math.min(stagger, 0.08) : stagger,
+      scrollTrigger: { trigger: scope.current, start: 'top 80%', once: true },
+    })
+  }, { scope })
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Scroll-triggered animation
+// ─────────────────────────────────────────────────────────────────────────────
+function useInView(threshold = 0.12) {
+  const ref = useRef(null)
+  const [visible, setVisible] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const obs = new IntersectionObserver(
+      ([e]) => { if (e.isIntersecting) { setVisible(true); obs.disconnect() } },
+      { threshold }
+    )
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [threshold])
+  return [ref, visible]
+}
+
+function Fade({ children, delay = 0, y = 30, className = '' }) {
+  const [ref, visible] = useInView()
   return (
-    <div className={`relative inline-block ${className}`}>
-      <div
-        className="absolute inset-0 -z-10 rounded-full blur-3xl opacity-25 scale-90"
-        style={{ backgroundColor: PRIMARY }}
-      />
-      <div className="relative bg-gray-900 rounded-[44px] p-[5px] shadow-2xl ring-1 ring-white/10 w-56 sm:w-64 md:w-72">
-        <div className="absolute top-3.5 left-1/2 -translate-x-1/2 w-20 h-4 bg-gray-900 rounded-full z-20" />
-        <div className="rounded-[38px] overflow-hidden bg-white aspect-[9/19.5]">
-          {src
-            ? <img src={src} alt={alt} className="w-full h-full object-cover object-top" />
-            : <div className="w-full h-full bg-gradient-to-b from-gray-100 to-gray-200" />}
+    <div
+      ref={ref}
+      className={className}
+      style={{
+        opacity: visible ? 1 : 0,
+        transform: visible ? 'translateY(0px)' : `translateY(${y}px)`,
+        transition: `opacity 0.72s cubic-bezier(.16,1,.3,1) ${delay}ms,
+                     transform 0.72s cubic-bezier(.16,1,.3,1) ${delay}ms`,
+      }}
+    >
+      {children}
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phone Mockup shell
+// ─────────────────────────────────────────────────────────────────────────────
+function PhoneMockup({ children }) {
+  return (
+    <div className="relative" style={{ width: 244, height: 492 }}>
+      <div className="absolute inset-0 rounded-[3rem] bg-gray-900 border-[5px] border-gray-800 shadow-2xl overflow-hidden">
+        <div className="relative z-10 flex justify-center pt-2">
+          <div className="w-20 h-[18px] bg-gray-900 rounded-full" />
+        </div>
+        <div className="absolute inset-0 top-6 rounded-b-[2.6rem] overflow-hidden bg-white">
+          {children}
         </div>
       </div>
     </div>
   )
 }
 
-// ── Section label ──────────────────────────────────────────────────────
-function SectionLabel({ children }) {
+// ─────────────────────────────────────────────────────────────────────────────
+// Hero right: dashboard mockup card
+// ─────────────────────────────────────────────────────────────────────────────
+function GraciaChatMockup() {
+  const { t } = useTranslation()
+  const quickActions = [
+    t('hero.mockupAction1'),
+    t('hero.mockupAction2'),
+    t('hero.mockupAction3'),
+  ]
+
   return (
-    <span
-      className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest px-3 py-1.5 rounded-full"
-      style={{ color: PRIMARY, backgroundColor: `${PRIMARY}12` }}
-    >
-      {children}
-    </span>
+    <div className="relative w-full max-w-[420px] mx-auto">
+      {/* Soft glow behind */}
+      <div
+        className="absolute inset-0 -z-10 blur-3xl opacity-[0.12] scale-90 translate-y-6 rounded-full"
+        style={{ backgroundColor: P }}
+      />
+
+      {/* Chat card */}
+      <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 p-5">
+        {/* Header */}
+        <div className="flex items-center gap-2.5 mb-4">
+          <div
+            className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-extrabold shrink-0"
+            style={{ backgroundColor: P }}
+          >K</div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[13px] font-bold text-gray-900">{t('hero.mockupName')}</span>
+            <span className="text-[11px] text-gray-400">· {t('hero.mockupRole')}</span>
+          </div>
+        </div>
+
+        {/* AI message bubble */}
+        <div className="bg-gray-100 rounded-2xl rounded-tl-md px-4 py-3 mb-5">
+          <p className="text-[13px] text-gray-700 leading-relaxed">{t('hero.mockupMessage')}</p>
+        </div>
+
+        {/* Quick actions */}
+        <p className="text-[9px] font-extrabold uppercase tracking-widest text-gray-400 mb-2.5">
+          {t('hero.mockupQuickActions')}
+        </p>
+        <div className="flex flex-wrap gap-2 mb-5">
+          {quickActions.map((label) => (
+            <span
+              key={label}
+              className="text-[11px] font-medium px-3 py-1.5 rounded-full border transition-colors"
+              style={{ color: P, borderColor: `${P}30` }}
+            >
+              {label}
+            </span>
+          ))}
+        </div>
+
+        {/* Input */}
+        <div className="flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-2xl pl-4 pr-1.5 py-1.5">
+          <span className="flex-1 text-[12px] text-gray-400">{t('hero.mockupInput')}</span>
+          <button
+            className="w-8 h-8 rounded-full flex items-center justify-center text-white shrink-0"
+            style={{ backgroundColor: P }}
+            aria-hidden="true"
+          >
+            <ArrowUp size={15} />
+          </button>
+        </div>
+      </div>
+
+      {/* Floating: people nearby */}
+      <div className="absolute -bottom-4 right-4 bg-white rounded-2xl shadow-lg px-3 py-2 border border-gray-100 flex items-center gap-2">
+        <div className="w-6 h-6 rounded-lg bg-gray-100" />
+        <p className="text-[11px] font-medium text-gray-600 whitespace-nowrap">{t('hero.mockupNearby')}</p>
+      </div>
+    </div>
   )
 }
 
-// ── Navbar ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Navbar
+// ─────────────────────────────────────────────────────────────────────────────
 function Navbar() {
+  const { t } = useTranslation()
+  const [scrolled, setScrolled] = useState(false)
   const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    const fn = () => setScrolled(window.scrollY > 16)
+    window.addEventListener('scroll', fn, { passive: true })
+    return () => window.removeEventListener('scroll', fn)
+  }, [])
+
+  const links = [
+    { href: '#features',     label: t('nav.features')     },
+    { href: '#process',      label: t('nav.process')      },
+    { href: '#aiTools',      label: t('nav.aiTools')      },
+    { href: '#testimonials', label: t('nav.testimonials') },
+  ]
+
   return (
-    <nav className="fixed top-0 inset-x-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100">
-      <div className="max-w-7xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2.5">
-          <img src="/logo2.png" alt="LifeKit" className="h-8 w-auto" />
-          <span className="text-lg font-extrabold text-gray-900 tracking-tight">LifeKit</span>
+    <nav className={`fixed inset-x-0 top-0 z-50 transition-all duration-200 ${scrolled ? 'bg-white/96 backdrop-blur-sm shadow-sm' : 'bg-white'}`}>
+      <div className="max-w-7xl mx-auto px-5 sm:px-8 h-16 flex items-center gap-4">
+        {/* Logo */}
+        <Link to="/" className="flex items-center gap-2 shrink-0 mr-4">
+          <img
+            src="/logo2.png"
+            alt="LifeKit"
+            className="h-8 w-auto"
+            onError={e => {
+              e.currentTarget.style.display = 'none'
+              const fb = e.currentTarget.nextElementSibling
+              if (fb) fb.style.display = 'block'
+            }}
+          />
+          <span className="hidden text-2xl font-extrabold tracking-tight" style={{ color: P }}>LifeKit</span>
         </Link>
 
-        <div className="hidden md:flex items-center gap-8">
-          {['Features', 'Skill Swap', 'Community', 'AI Tools'].map(l => (
-            <a key={l} href={`#${l.toLowerCase().replace(' ', '-')}`} className="text-sm text-gray-600 hover:text-gray-900 transition-colors">{l}</a>
+        {/* Desktop links */}
+        <div className="hidden md:flex items-center gap-7 mx-auto">
+          {links.map(({ href, label }) => (
+            <a key={href} href={href} className="text-sm text-gray-500 hover:text-gray-900 font-medium transition-colors">
+              {label}
+            </a>
           ))}
         </div>
 
-        <div className="hidden md:flex items-center gap-3">
-          <Link to="/login" className="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">Sign In</Link>
+        {/* Right */}
+        <div className="flex items-center gap-2 ml-auto">
+          <LanguageSwitcher />
+          <Link to="/login" className="hidden sm:block text-sm font-medium text-gray-600 hover:text-gray-900 px-3 py-1.5 transition-colors">
+            {t('nav.signIn')}
+          </Link>
           <Link
             to="/register"
-            className="text-sm font-bold text-white px-4 py-2 rounded-xl transition-all hover:opacity-90 active:scale-95 shadow-sm"
-            style={{ backgroundColor: PRIMARY }}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-semibold hover:opacity-90 transition-opacity"
+            style={{ backgroundColor: P }}
           >
-            Join as Provider
+            {t('nav.joinAsProvider')}
           </Link>
+          <button
+            className="md:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100 ml-1 transition-colors"
+            onClick={() => setOpen(!open)}
+            aria-label="Toggle menu"
+          >
+            {open ? <X size={20} /> : <Menu size={20} />}
+          </button>
         </div>
-
-        <button onClick={() => setOpen(!open)} className="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">
-          {open ? <X size={20} /> : <Menu size={20} />}
-        </button>
       </div>
 
+      {/* Mobile menu */}
       {open && (
-        <div className="md:hidden border-t border-gray-100 bg-white px-5 py-4 flex flex-col gap-4">
-          {['Features', 'Skill Swap', 'Community', 'AI Tools'].map(l => (
-            <a key={l} href={`#${l.toLowerCase().replace(' ', '-')}`} onClick={() => setOpen(false)} className="text-sm text-gray-700 font-medium">{l}</a>
+        <div className="md:hidden bg-white border-t border-gray-100 py-4 px-5 space-y-0.5">
+          {links.map(({ href, label }) => (
+            <a
+              key={href}
+              href={href}
+              className="block py-3 text-sm font-medium text-gray-700 hover:text-gray-900 border-b border-gray-50 last:border-0"
+              onClick={() => setOpen(false)}
+            >
+              {label}
+            </a>
           ))}
-          <hr className="border-gray-100" />
-          <Link to="/login" className="text-sm text-gray-700 font-medium">Sign In</Link>
-          <Link to="/register" className="text-sm font-bold text-white text-center px-4 py-2.5 rounded-xl" style={{ backgroundColor: PRIMARY }}>
-            Join as Provider
+          <Link
+            to="/login"
+            className="block pt-3 text-sm font-medium text-gray-500"
+            onClick={() => setOpen(false)}
+          >
+            {t('nav.signIn')}
           </Link>
         </div>
       )}
@@ -90,346 +284,249 @@ function Navbar() {
   )
 }
 
-// ── Hero ───────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Hero
+// ─────────────────────────────────────────────────────────────────────────────
 function Hero() {
+  const { t } = useTranslation()
+
+  const lines = [t('hero.titlePart1'), t('hero.titlePart2')]
+
+  const headlineContainer = {
+    hidden: {},
+    visible: { transition: { staggerChildren: 0.08 } },
+  }
+  const wordVariant = {
+    hidden: { opacity: 0, y: 24 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.55, ease: [0.16, 1, 0.3, 1] } },
+  }
+
   return (
-    <section className="pt-28 pb-20 bg-white overflow-hidden">
-      <div className="max-w-7xl mx-auto px-5 sm:px-8 grid lg:grid-cols-2 gap-16 items-center">
-        <div>
-          <span
-            className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full mb-6"
-            style={{ backgroundColor: `${PRIMARY}15`, color: PRIMARY }}
+    <section className="relative pt-36 pb-28 px-5 sm:px-8 overflow-hidden">
+      {/* Ambient animated background */}
+      <div aria-hidden className="ambient-blob pointer-events-none absolute inset-0 -z-10" />
+
+      <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-16 lg:gap-12">
+
+        {/* Left */}
+        <div className="flex-1 max-w-xl">
+          <motion.h1
+            className="text-[3.4rem] sm:text-[4.25rem] lg:text-[5rem] font-extrabold tracking-tight text-gray-900 leading-[1.02] mb-7"
+            variants={headlineContainer}
+            initial="hidden"
+            animate="visible"
           >
-            <Sparkles size={11} />
-            Founding Provider — 1 Year Pro Free
-          </span>
-
-          <h1 className="text-4xl sm:text-5xl xl:text-6xl font-extrabold text-gray-900 leading-[1.1] tracking-tight">
-            The ultimate platform for{' '}
-            <span style={{ color: PRIMARY }}>skilled providers</span>{' '}
-            &amp; their communities.
-          </h1>
-
-          <p className="mt-6 text-lg text-gray-500 leading-relaxed max-w-xl">
-            LifeKit is more than a booking app. It is a living ecosystem — book services, swap skills,
-            build communities, and grow your income with an AI that works around the clock for you.
-          </p>
-
-          <ul className="mt-7 flex flex-col gap-2.5">
-            {[
-              '0% commission forever as a Founding Provider',
-              'Full AI toolkit: autofill, radar, 24/7 concierge',
-              'Skill Swap — trade services without spending a cent',
-              'Social feed and community hubs built in',
-            ].map(item => (
-              <li key={item} className="flex items-center gap-2.5 text-sm text-gray-700 font-medium">
-                <CheckCircle2 size={16} className="flex-shrink-0 text-green-500" />
-                {item}
-              </li>
+            {lines.map((line, li) => (
+              <span key={li} className="block">
+                {line.split(' ').map((word, wi, arr) => (
+                  <Fragment key={wi}>
+                    <motion.span className="inline-block" variants={wordVariant}>
+                      {word}
+                    </motion.span>
+                    {wi < arr.length - 1 ? ' ' : ''}
+                  </Fragment>
+                ))}
+              </span>
             ))}
-          </ul>
+          </motion.h1>
 
-          <div className="mt-8 flex flex-wrap gap-4">
+          <motion.p
+            className="text-[1.1rem] text-gray-500 leading-relaxed mb-9 max-w-md"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 1.05, ease: [0.16, 1, 0.3, 1] }}
+          >
+            {t('hero.subtitle')}
+          </motion.p>
+
+          <motion.div
+            className="flex flex-col sm:flex-row sm:items-center gap-5 mb-6"
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.6 }}
+          >
             <Link
               to="/register"
-              className="inline-flex items-center gap-2 text-white font-bold px-7 py-4 rounded-2xl shadow-xl transition-all hover:opacity-90 active:scale-95 text-base"
-              style={{ backgroundColor: PRIMARY }}
+              className="inline-flex items-center justify-center gap-2 px-7 py-4 rounded-xl text-white text-[15px] font-semibold hover:opacity-90 hover:shadow-lg transition-all"
+              style={{ backgroundColor: P }}
             >
-              Claim 1 Year Free Pro <ArrowRight size={17} />
+              {t('hero.ctaPrimary')}
+              <ArrowRight size={16} />
             </Link>
             <a
-              href="#features"
-              className="inline-flex items-center gap-2 font-semibold text-gray-700 px-7 py-4 rounded-2xl border border-gray-200 bg-white hover:bg-gray-50 transition-all text-base"
+              href="#process"
+              className="inline-flex items-center gap-1.5 text-[15px] font-semibold text-gray-700 underline underline-offset-4 decoration-gray-300 hover:decoration-gray-600 transition-colors"
             >
-              See How It Works
+              {t('hero.ctaSecondary')} →
             </a>
-          </div>
+          </motion.div>
 
-          <div className="mt-10 flex items-center gap-4">
-            <div className="flex -space-x-2">
-              {['#f87171', '#fb923c', '#a78bfa', '#34d399', '#60a5fa'].map((c, i) => (
-                <div key={i} className="w-8 h-8 rounded-full border-2 border-white" style={{ backgroundColor: c }} />
-              ))}
-            </div>
-            <p className="text-sm text-gray-500">
-              <span className="font-semibold text-gray-800">200+ providers</span> already on the waitlist
-            </p>
-          </div>
+          <motion.p
+            className="text-[13px] text-gray-400"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.95 }}
+          >
+            {t('hero.note')}
+          </motion.p>
         </div>
 
-        <div className="flex justify-center">
-          <PhoneMockup src="/homepage.png" alt="LifeKit Home Screen" className="mx-auto" />
-        </div>
+        {/* Right */}
+        <motion.div
+          className="flex-1 flex justify-center lg:justify-end w-full"
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: 'spring', stiffness: 120, damping: 18, delay: 0.5 }}
+        >
+          <GraciaChatMockup />
+        </motion.div>
       </div>
     </section>
   )
 }
 
-// ── Stats Bar ──────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Stats Bar
+// ─────────────────────────────────────────────────────────────────────────────
 function StatsBar() {
+  const { t } = useTranslation()
+  const scope = useRef(null)
+
+  const stats = [
+    { value: '0%',                 label: t('stats.commissionLabel') },
+    { value: '5',                  label: t('stats.aiFeaturesLabel') },
+    { value: t('stats.timeValue'), label: t('stats.timeLabel')   },
+    { value: t('stats.swapValue'), label: t('stats.swapLabel')   },
+  ]
+
+  // A stat is "countable" only when it is a plain integer with an optional % sign.
+  const parseCountable = (raw) => {
+    const m = /^(\d+)(%?)$/.exec(raw.trim())
+    return m ? { number: parseInt(m[1], 10), suffix: m[2] } : null
+  }
+
+  useGSAP(() => {
+    const items = gsap.utils.toArray('.stat-item', scope.current)
+    const counters = gsap.utils.toArray('[data-count]', scope.current)
+
+    if (prefersReduced()) {
+      gsap.set(items, { opacity: 1, y: 0 })
+      counters.forEach((el) => {
+        el.textContent = el.dataset.count + (el.dataset.suffix || '')
+      })
+      return
+    }
+
+    items.forEach((item, i) => {
+      gsap.from(item, {
+        opacity: 0,
+        y: 20,
+        duration: 0.5,
+        ease: 'power2.out',
+        delay: i * 0.15,
+        scrollTrigger: { trigger: scope.current, start: 'top 85%', once: true },
+      })
+    })
+
+    counters.forEach((el) => {
+      const target = parseFloat(el.dataset.count)
+      const suffix = el.dataset.suffix || ''
+      const idx = parseInt(el.dataset.index, 10) || 0
+      const obj = { v: 0 }
+      gsap.to(obj, {
+        v: target,
+        duration: 1.2,
+        ease: 'power2.out',
+        delay: idx * 0.15,
+        scrollTrigger: { trigger: scope.current, start: 'top 85%', once: true },
+        onUpdate: () => { el.textContent = Math.round(obj.v) + suffix },
+      })
+    })
+  }, { scope })
+
   return (
-    <div className="py-12" style={{ backgroundColor: PRIMARY }}>
-      <div className="max-w-7xl mx-auto px-5 sm:px-8 grid grid-cols-2 sm:grid-cols-4 gap-8 text-center">
-        {[
-          { value: '0%', label: 'Commission (Founding Providers)' },
-          { value: '5', label: 'AI-powered features' },
-          { value: '< 5m', label: 'Time to first listing' },
-          { value: 'Unlimited', label: 'Skill Swap possibilities' },
-        ].map(s => (
-          <div key={s.label}>
-            <p className="text-3xl sm:text-4xl font-extrabold text-white">{s.value}</p>
-            <p className="mt-1 text-white/60 text-xs sm:text-sm">{s.label}</p>
-          </div>
-        ))}
+    <div className="border-y border-gray-100 bg-gray-50/60">
+      <div className="max-w-7xl mx-auto px-5 sm:px-8">
+        <div ref={scope} className="grid grid-cols-2 md:grid-cols-4 divide-x divide-gray-100">
+          {stats.map(({ value, label }, i) => {
+            const c = parseCountable(value)
+            return (
+              <div key={label} className="stat-item py-8 px-6">
+                <p
+                  className="text-3xl font-extrabold mb-1"
+                  style={{ color: i === 0 ? P : '#111827' }}
+                >
+                  {c ? (
+                    <span data-count={c.number} data-suffix={c.suffix} data-index={i}>
+                      0{c.suffix}
+                    </span>
+                  ) : (
+                    value
+                  )}
+                </p>
+                <p className="text-xs text-gray-400 font-medium leading-snug">{label}</p>
+              </div>
+            )
+          })}
+        </div>
       </div>
     </div>
   )
 }
 
-// ── Skill Swap ─────────────────────────────────────────────────────────
-function SkillSwap() {
-  return (
-    <section id="skill-swap" className="py-24 bg-gray-50 overflow-hidden">
-      <div className="max-w-7xl mx-auto px-5 sm:px-8 grid lg:grid-cols-2 gap-16 items-center">
-        <div className="flex justify-center order-2 lg:order-1">
-          <PhoneMockup src="/skillswap.png" alt="Skill Swap Screen" />
-        </div>
+// ─────────────────────────────────────────────────────────────────────────────
+// Process Section
+// ─────────────────────────────────────────────────────────────────────────────
+function ProcessSection() {
+  const { t } = useTranslation()
+  const gridRef = useRef(null)
 
-        <div className="order-1 lg:order-2">
-          <SectionLabel>The Game Changer</SectionLabel>
-          <h2 className="mt-4 text-3xl sm:text-4xl font-extrabold text-gray-900 leading-tight">
-            Trade your skill.<br />
-            <span style={{ color: PRIMARY }}>No money needed.</span>
-          </h2>
-          <p className="mt-5 text-gray-500 text-lg leading-relaxed">
-            LifeKit Skill Swap is the world's first AI-engineered barter layer built into a service marketplace.
-            As a provider, you can exchange your expertise directly — a Hairdresser trades a Blowout for a Manicure,
-            a Tutor swaps lessons for a Meal Prep session.
-          </p>
-          <p className="mt-3 text-gray-500 leading-relaxed">
-            Our AI matches compatible skills, coordinates scheduling, and tracks the fairness of every exchange
-            so you keep more value in your hands.
-          </p>
-
-          <div className="mt-8 grid grid-cols-2 gap-4">
-            {[
-              { icon: <Repeat2 size={20} />, title: 'AI-matched swaps', desc: 'We find providers whose skills complement yours' },
-              { icon: <ShieldCheck size={20} />, title: 'Fair-value tracking', desc: 'AI ensures balanced exchanges every time' },
-              { icon: <Zap size={20} />, title: 'Zero transaction fees', desc: 'Swaps are completely free — always' },
-              { icon: <Star size={20} />, title: 'Reputation carries over', desc: 'Your swap reviews boost your main profile' },
-            ].map(f => (
-              <div key={f.title} className="flex items-start gap-3 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${PRIMARY}12`, color: PRIMARY }}>
-                  {f.icon}
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-gray-800">{f.title}</p>
-                  <p className="text-xs text-gray-500 mt-0.5 leading-snug">{f.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-// ── Community ──────────────────────────────────────────────────────────
-function Community() {
-  const cards = [
-    {
-      icon: <Users size={22} />,
-      title: 'Community Hubs',
-      desc: 'Join niche groups built around what you do — Hair and Beauty, Home Services, Tutors, Movers. Share tips, get referrals, and collaborate with peers in your city.',
-    },
-    {
-      icon: <MessageCircle size={22} />,
-      title: 'Social Activity Feed',
-      desc: "Post updates, showcase your work, ask for advice. LifeKit's feed turns a service app into a professional social network where customers discover you organically.",
-    },
-    {
-      icon: <TrendingUp size={22} />,
-      title: 'Referral Network',
-      desc: "When you can't take a job, pass it to a trusted peer and earn a referral reward. Your community is your pipeline.",
-    },
-  ]
-  return (
-    <section id="community" className="py-24 bg-white">
-      <div className="max-w-7xl mx-auto px-5 sm:px-8">
-        <div className="text-center max-w-2xl mx-auto mb-14">
-          <SectionLabel>Community</SectionLabel>
-          <h2 className="mt-4 text-3xl sm:text-4xl font-extrabold text-gray-900 leading-tight">
-            LifeKit is a social network.<br />Services are just the start.
-          </h2>
-          <p className="mt-4 text-gray-500 text-lg leading-relaxed">
-            Your success should not depend on a solo hustle. LifeKit puts you inside a living, breathing professional
-            community where visibility, trust, and income grow together.
-          </p>
-        </div>
-
-        <div className="grid sm:grid-cols-3 gap-6">
-          {cards.map(c => (
-            <div
-              key={c.title}
-              className="p-6 rounded-3xl border border-gray-100 shadow-sm bg-white hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group"
-            >
-              <div className="w-11 h-11 rounded-2xl flex items-center justify-center mb-5" style={{ backgroundColor: `${PRIMARY}12`, color: PRIMARY }}>
-                {c.icon}
-              </div>
-              <h3 className="text-base font-bold text-gray-900 mb-2">{c.title}</h3>
-              <p className="text-sm text-gray-500 leading-relaxed">{c.desc}</p>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-16 bg-gray-50 rounded-3xl p-8 border border-gray-100">
-          <div className="flex flex-col sm:flex-row items-start gap-6 max-w-3xl mx-auto">
-            {[
-              { color: '#f87171', initials: 'AK', name: 'Amara K.', role: 'Nail Tech', time: '2h', text: 'Just finished a full set of marble acrylics. Slots open this weekend!', likes: 24 },
-              { color: '#60a5fa', initials: 'JD', name: 'James D.', role: 'Electrician', time: '4h', text: 'Pro tip: always quote 15% above your cost estimate for first-time clients. Protects your margins.', likes: 41 },
-              { color: '#34d399', initials: 'PN', name: 'Priya N.', role: 'Math Tutor', time: '6h', text: "Skill Swap request: I'll tutor your kid for 4 sessions in exchange for massage therapy. Anyone?", likes: 17 },
-            ].map(p => (
-              <div key={p.name} className="flex-1 bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-white text-sm flex-shrink-0" style={{ backgroundColor: p.color }}>
-                    {p.initials}
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-gray-800">{p.name}</p>
-                    <p className="text-xs text-gray-400">{p.role} · {p.time} ago</p>
-                  </div>
-                </div>
-                <p className="text-sm text-gray-700 leading-relaxed">{p.text}</p>
-                <div className="mt-3 flex items-center gap-1.5 text-xs text-gray-400">
-                  <Star size={11} fill={PRIMARY} color={PRIMARY} /> {p.likes} likes
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-// ── Bookings ───────────────────────────────────────────────────────────
-function Bookings() {
-  return (
-    <section id="features" className="py-24 bg-gray-50 overflow-hidden">
-      <div className="max-w-7xl mx-auto px-5 sm:px-8 grid lg:grid-cols-2 gap-16 items-center">
-        <div>
-          <SectionLabel>Bookings</SectionLabel>
-          <h2 className="mt-4 text-3xl sm:text-4xl font-extrabold text-gray-900 leading-tight">
-            Book in 60 seconds.<br />
-            <span style={{ color: PRIMARY }}>Get paid instantly.</span>
-          </h2>
-          <p className="mt-5 text-gray-500 text-lg leading-relaxed">
-            Customers build a cart of services, pay through our secure escrow system, and you get notified
-            immediately. Whether you charge a flat fee or hourly, the platform handles pricing, scheduling,
-            and payouts automatically.
-          </p>
-
-          <div className="mt-8 flex flex-col gap-4">
-            {[
-              { icon: <ShoppingCart size={18} />, title: 'Multi-service cart', desc: 'Customers can book multiple services from multiple providers in a single checkout.' },
-              { icon: <ShieldCheck size={18} />, title: 'Escrow protection', desc: 'Funds are held securely until the service is delivered. You get paid, guaranteed.' },
-              { icon: <Zap size={18} />, title: 'Fixed and hourly pricing', desc: 'Set a flat rate or charge per hour — the app handles the maths for you.' },
-            ].map(f => (
-              <div key={f.title} className="flex items-start gap-4 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${PRIMARY}12`, color: PRIMARY }}>
-                  {f.icon}
-                </div>
-                <div>
-                  <p className="font-bold text-sm text-gray-900">{f.title}</p>
-                  <p className="text-sm text-gray-500 mt-0.5 leading-snug">{f.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex justify-center">
-          <PhoneMockup src="/cart.png" alt="Cart Screen" />
-        </div>
-      </div>
-    </section>
-  )
-}
-
-// ── AI Tools ───────────────────────────────────────────────────────────
-function AiTools() {
-  const tiles = [
-    {
-      icon: <TrendingUp size={24} />,
-      tag: 'Opportunity Radar',
-      title: 'Your personal market analyst',
-      desc: 'Scans local demand daily and surfaces the exact services you should be offering this week to maximise revenue.',
-      wide: false,
-    },
-    {
-      icon: <Sparkles size={24} />,
-      tag: 'Magic Autofill',
-      title: 'List a service in under 10 seconds',
-      desc: 'Describe your skill in plain English. AI writes the full listing — title, description, and price — instantly.',
-      wide: false,
-    },
-    {
-      icon: <MessageCircle size={24} />,
-      tag: '24/7 AI Concierge',
-      title: 'Always-on support for every customer',
-      desc: 'An AI assistant helps customers find services, answer questions, and book around the clock — while you sleep.',
-      wide: true,
-    },
-    {
-      icon: <Brain size={24} />,
-      tag: 'Onboarding Planner',
-      title: 'A 7-day plan built just for you',
-      desc: 'A personalised onboarding roadmap guides new providers through their first bookings step by step.',
-      wide: false,
-    },
-    {
-      icon: <Repeat2 size={24} />,
-      tag: 'AI Skill Match',
-      title: 'Smart Skill Swap pairing',
-      desc: 'Our AI finds the most compatible swap partners based on skill value, location, and availability.',
-      wide: false,
-    },
+  const steps = [
+    { num: '01', title: t('process.step1Title'), desc: t('process.step1Desc') },
+    { num: '02', title: t('process.step2Title'), desc: t('process.step2Desc') },
+    { num: '03', title: t('process.step3Title'), desc: t('process.step3Desc') },
   ]
 
-  return (
-    <section id="ai-tools" className="py-24 bg-white">
-      <div className="max-w-7xl mx-auto px-5 sm:px-8">
-        <div className="text-center max-w-2xl mx-auto mb-14">
-          <SectionLabel>AI Intelligence Layer</SectionLabel>
-          <h2 className="mt-4 text-3xl sm:text-4xl font-extrabold text-gray-900 leading-tight">
-            Five AI tools working for you around the clock.
-          </h2>
-          <p className="mt-4 text-gray-500 text-lg">
-            Every major feature in LifeKit has an AI layer powering it — not as a gimmick, but as a genuine force multiplier for your income.
-          </p>
-        </div>
+  useScrollReveal(gridRef, { stagger: 0.2 })
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {tiles.map((t, i) => (
-            <div
-              key={t.tag}
-              className={`relative overflow-hidden rounded-3xl p-6 flex flex-col justify-between border border-gray-100 shadow-sm group hover:shadow-md transition-all duration-200 ${t.wide ? 'sm:col-span-2 lg:col-span-2' : ''}`}
-              style={{ background: i % 2 === 0 ? `linear-gradient(135deg, ${PRIMARY}08, white)` : 'white' }}
-            >
-              <div>
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform" style={{ backgroundColor: `${PRIMARY}15`, color: PRIMARY }}>
-                  {t.icon}
-                </div>
+  return (
+    <section id="process" className="py-24 px-5 sm:px-8 bg-gray-50">
+      <div className="max-w-7xl mx-auto">
+        <Fade className="mb-16">
+          <span className="block text-[10px] font-extrabold uppercase tracking-widest mb-4" style={{ color: P }}>
+            {t('process.label')}
+          </span>
+          <h2 className="text-4xl sm:text-5xl font-extrabold text-gray-900 leading-tight max-w-2xl">
+            {t('process.title')}
+          </h2>
+        </Fade>
+
+        <div ref={gridRef} className="grid md:grid-cols-3 gap-5">
+          {steps.map((step) => (
+            <div key={step.num} className="reveal-item h-full">
+              <motion.div
+                whileHover={{ y: -6, boxShadow: '0 22px 45px -18px rgba(0,0,0,0.22)' }}
+                transition={{ type: 'spring', stiffness: 300, damping: 22 }}
+                className="relative bg-white rounded-2xl border border-gray-100 p-7 pb-10 h-full overflow-hidden"
+              >
+                {/* Watermark number */}
                 <span
-                  className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded-full"
-                  style={{ backgroundColor: `${PRIMARY}12`, color: PRIMARY }}
+                  className="absolute -bottom-6 right-2 text-[8rem] font-extrabold leading-none select-none pointer-events-none"
+                  style={{ color: `${P}08` }}
                 >
-                  {t.tag}
+                  {step.num}
                 </span>
-                <h3 className="mt-3 text-lg font-extrabold text-gray-900 leading-snug">{t.title}</h3>
-              </div>
-              <p className="mt-4 text-sm text-gray-500 leading-relaxed">{t.desc}</p>
+
+                <span className="block text-[11px] font-mono text-gray-400 mb-12">
+                  {step.num}
+                </span>
+                <h3 className="text-lg font-bold mb-3 leading-snug" style={{ color: P }}>
+                  {step.title}
+                </h3>
+                <p className="text-sm text-gray-400 leading-relaxed relative z-10">
+                  {step.desc}
+                </p>
+              </motion.div>
             </div>
           ))}
         </div>
@@ -438,144 +535,511 @@ function AiTools() {
   )
 }
 
-// ── Final CTA ──────────────────────────────────────────────────────────
-function FinalCta() {
+// ─────────────────────────────────────────────────────────────────────────────
+// Features Grid
+// ─────────────────────────────────────────────────────────────────────────────
+function FeaturesSection() {
+  const { t } = useTranslation()
+  const gridRef = useRef(null)
+
+  const cards = [
+    { title: t('features.f1Title'), desc: t('features.f1Desc'), Icon: Sparkles },
+    { title: t('features.f2Title'), desc: t('features.f2Desc'), Icon: Store },
+    { title: t('features.f3Title'), desc: t('features.f3Desc'), Icon: Repeat2 },
+    { title: t('features.f4Title'), desc: t('features.f4Desc'), Icon: Users },
+  ]
+
+  useScrollReveal(gridRef, { stagger: 0.12 })
+
   return (
-    <section className="py-24 bg-gray-50">
-      <div className="max-w-4xl mx-auto px-5 sm:px-8 text-center">
-        <div
-          className="relative overflow-hidden rounded-[2rem] px-8 py-16 text-white shadow-2xl"
-          style={{ background: `linear-gradient(135deg, ${PRIMARY} 0%, #7c3aed 100%)` }}
-        >
-          {[120, 80, 160, 60, 100, 140].map((size, i) => (
-            <div
-              key={i}
-              className="absolute rounded-full bg-white/10"
-              style={{
-                width: `${size}px`,
-                height: `${size}px`,
-                top: ['-20%', '60%', '-10%', '70%', '10%', '40%'][i],
-                left: ['-5%', '80%', '70%', '-2%', '40%', '60%'][i],
+    <section id="features" className="py-24 px-5 sm:px-8">
+      <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-12 lg:gap-16">
+        {/* Heading — left */}
+        <Fade className="lg:w-80 shrink-0">
+          <span className="block text-[10px] font-extrabold uppercase tracking-widest mb-4" style={{ color: P }}>
+            {t('features.label')}
+          </span>
+          <h2 className="text-4xl sm:text-5xl font-extrabold text-gray-900 leading-tight">
+            {t('features.title')}
+          </h2>
+        </Fade>
+
+        {/* Grid — right */}
+        <div ref={gridRef} className="flex-1 grid sm:grid-cols-2 gap-5">
+          {cards.map(({ title, desc, Icon }) => (
+            <div key={title} className="reveal-item h-full">
+              <div className="flex flex-col bg-white rounded-2xl border border-gray-100 p-7 h-full min-h-[14rem] hover:shadow-md transition-shadow cursor-default">
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center mb-auto"
+                  style={{ backgroundColor: `${P}10` }}
+                >
+                  <Icon size={18} color={P} />
+                </div>
+                <div className="mt-12">
+                  <h3 className="text-[15px] font-bold mb-2 leading-snug" style={{ color: P }}>
+                    {title}
+                  </h3>
+                  <p className="text-sm text-gray-400 leading-relaxed">
+                    {desc}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Scenarios / Use Cases
+// ─────────────────────────────────────────────────────────────────────────────
+function ScenariosSection() {
+  const { t } = useTranslation()
+
+  const items = [
+    { label: t('scenarios.s1Label'), title: t('scenarios.s1Title'), desc: t('scenarios.s1Desc') },
+    { label: t('scenarios.s2Label'), title: t('scenarios.s2Title'), desc: t('scenarios.s2Desc') },
+    { label: t('scenarios.s3Label'), title: t('scenarios.s3Title'), desc: t('scenarios.s3Desc') },
+  ]
+
+  return (
+    <section className="py-24 px-5 sm:px-8">
+      <div className="max-w-7xl mx-auto">
+        <Fade className="mb-14">
+          <span className="block text-[10px] font-extrabold uppercase tracking-widest mb-4" style={{ color: P }}>
+            {t('scenarios.label')}
+          </span>
+          <h2 className="text-4xl sm:text-5xl font-extrabold text-gray-900 leading-tight max-w-2xl">
+            {t('scenarios.title')}
+          </h2>
+        </Fade>
+
+        {/* Three columns */}
+        <div className="grid md:grid-cols-3 gap-10 lg:gap-14 mb-14">
+          {items.map((item, i) => (
+            <Fade key={item.label} delay={i * 100}>
+              <span className="block text-[9px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">
+                {item.label}
+              </span>
+              <h3 className="text-lg font-bold mb-3 leading-snug" style={{ color: P }}>
+                {item.title}
+              </h3>
+              <p className="text-sm text-gray-400 leading-relaxed">
+                {item.desc}
+              </p>
+            </Fade>
+          ))}
+        </div>
+
+        {/* Large image */}
+        <Fade delay={120}>
+          <div
+            className="relative w-full rounded-3xl overflow-hidden border-2"
+            style={{ borderColor: P, aspectRatio: '16 / 7' }}
+          >
+            <img
+              src="/scenarios.png"
+              alt={t('scenarios.title')}
+              className="absolute inset-0 w-full h-full object-cover"
+              onError={e => {
+                e.currentTarget.style.display = 'none'
+                const fb = e.currentTarget.nextElementSibling
+                if (fb) fb.style.display = 'flex'
               }}
             />
-          ))}
-          <div className="relative">
-            <span className="inline-block bg-white/20 text-white text-xs font-bold uppercase tracking-widest px-3 py-1.5 rounded-full mb-6">
-              Limited Founding Spots
-            </span>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold leading-tight mb-5">
-              Seed the Marketplace.<br />
-              Claim your Founding Provider status.
-            </h2>
-            <p className="text-white/80 text-lg max-w-xl mx-auto mb-8 leading-relaxed">
-              Founding Providers lock in <strong className="text-white">0% commission forever</strong> and unlock every AI feature
-              free for a full year. Once spots are gone, they are gone.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                to="/register"
-                className="inline-flex items-center justify-center gap-2 bg-white font-extrabold px-8 py-4 rounded-2xl text-base transition-all hover:bg-gray-100 active:scale-95 shadow-lg"
-                style={{ color: PRIMARY }}
-              >
-                Claim my free spot <ArrowRight size={18} />
-              </Link>
-              <Link
-                to="/login"
-                className="inline-flex items-center justify-center gap-2 bg-white/15 font-semibold px-8 py-4 rounded-2xl text-base text-white hover:bg-white/25 transition-all border border-white/20"
-              >
-                Sign In
-              </Link>
-            </div>
-
-            <div className="mt-10 flex flex-wrap items-center justify-center gap-6">
-              {[
-                { icon: <Percent size={14} />, text: '0% commission forever' },
-                { icon: <Sparkles size={14} />, text: '1 year Pro free' },
-                { icon: <ShieldCheck size={14} />, text: 'No credit card needed' },
-              ].map(t => (
-                <div key={t.text} className="flex items-center gap-2 text-white/80 text-sm font-medium">
-                  {t.icon} {t.text}
-                </div>
-              ))}
+            {/* Placeholder fallback */}
+            <div
+              className="absolute inset-0 hidden items-center justify-center bg-gray-100"
+            >
+              <div className="text-center">
+                <p className="text-5xl mb-3">🖼️</p>
+                <p className="text-sm font-medium text-gray-400">{t('scenarios.imagePlaceholder')}</p>
+                <p className="text-xs text-gray-300 mt-1">public/scenarios.png</p>
+              </div>
             </div>
           </div>
+        </Fade>
+      </div>
+    </section>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Bookings Feature
+// ─────────────────────────────────────────────────────────────────────────────
+function BookingsSection() {
+  const { t } = useTranslation()
+
+  const items = [
+    { Icon: Calendar, title: t('bookings.feature1Title'), desc: t('bookings.feature1Desc') },
+    { Icon: Shield,   title: t('bookings.feature2Title'), desc: t('bookings.feature2Desc') },
+    { Icon: Clock,    title: t('bookings.feature3Title'), desc: t('bookings.feature3Desc') },
+  ]
+
+  return (
+    <section className="py-24 px-5 sm:px-8">
+      <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-16 lg:gap-24">
+
+        {/* Left: text */}
+        <div className="flex-1 order-2 lg:order-1">
+          <Fade>
+            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-4">
+              {t('bookings.sectionLabel')}
+            </span>
+            <h2 className="text-4xl sm:text-5xl font-extrabold text-gray-900 leading-tight mb-6">
+              {t('bookings.title1')}<br />
+              <span style={{ color: P }}>{t('bookings.titleHighlight')}</span>
+            </h2>
+            <p className="text-gray-400 text-base leading-relaxed mb-10 max-w-lg">
+              {t('bookings.subtitle')}
+            </p>
+          </Fade>
+
+          <div className="space-y-7">
+            {items.map(({ Icon, title, desc }, i) => (
+              <Fade key={title} delay={i * 100}>
+                <div className="flex gap-4">
+                  <div
+                    className="w-10 h-10 rounded-2xl flex items-center justify-center text-white shrink-0"
+                    style={{ backgroundColor: P }}
+                  >
+                    <Icon size={17} />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-900 mb-1">{title}</p>
+                    <p className="text-sm text-gray-400 leading-relaxed">{desc}</p>
+                  </div>
+                </div>
+              </Fade>
+            ))}
+          </div>
+
+          <Fade delay={320}>
+            <Link
+              to="/register"
+              className="inline-flex items-center gap-2 mt-10 px-6 py-3.5 rounded-xl text-white text-sm font-semibold hover:opacity-90 transition-opacity"
+              style={{ backgroundColor: P }}
+            >
+              {t('hero.ctaPrimary')}
+              <ArrowRight size={15} />
+            </Link>
+          </Fade>
+        </div>
+
+        {/* Right: phone mockup */}
+        <Fade delay={120} className="order-1 lg:order-2 flex justify-center">
+          <div className="relative">
+            <div
+              className="absolute inset-0 -z-10 blur-3xl opacity-20 scale-75 rounded-full"
+              style={{ backgroundColor: P }}
+            />
+            <PhoneMockup>
+              <div className="flex flex-col h-full bg-gray-50">
+                {/* App header */}
+                <div className="bg-white px-4 py-3 border-b border-gray-100 flex items-center gap-2">
+                  <div
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-bold shrink-0"
+                    style={{ backgroundColor: P }}
+                  >L</div>
+                  <div>
+                    <div className="w-16 h-2 bg-gray-200 rounded" />
+                    <div className="w-10 h-1.5 bg-gray-100 rounded mt-1" />
+                  </div>
+                </div>
+                {/* Booking items */}
+                <div className="flex-1 p-3 space-y-2.5 overflow-hidden">
+                  {[
+                    { color: P,         badge: 'Confirmed'  },
+                    { color: '#7C3AED', badge: 'Skill Swap' },
+                    { color: '#16A34A', badge: 'Completed'  },
+                  ].map(({ color, badge }, i) => (
+                    <div key={i} className="bg-white rounded-2xl p-3 flex gap-3 shadow-sm items-center">
+                      <div className="w-9 h-9 rounded-xl shrink-0" style={{ backgroundColor: `${color}15` }} />
+                      <div className="flex-1">
+                        <div className="w-3/4 h-2 bg-gray-200 rounded mb-1.5" />
+                        <div className="w-1/2 h-1.5 bg-gray-100 rounded" />
+                      </div>
+                      <span
+                        className="text-[8px] font-extrabold px-2 py-1 rounded-full whitespace-nowrap"
+                        style={{ color, backgroundColor: `${color}15` }}
+                      >{badge}</span>
+                    </div>
+                  ))}
+                </div>
+                {/* CTA */}
+                <div className="p-3">
+                  <div
+                    className="w-full h-10 rounded-xl flex items-center justify-center"
+                    style={{ backgroundColor: P }}
+                  >
+                    <div className="w-20 h-2 bg-white/40 rounded" />
+                  </div>
+                </div>
+              </div>
+            </PhoneMockup>
+          </div>
+        </Fade>
+      </div>
+    </section>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AI Tools Section (dark)
+// ─────────────────────────────────────────────────────────────────────────────
+function AiToolsSection() {
+  const { t } = useTranslation()
+
+  const tools = [1, 2, 3, 4, 5].map(n => ({
+    tag:   t(`aiTools.tool${n}Tag`),
+    title: t(`aiTools.tool${n}Title`),
+    desc:  t(`aiTools.tool${n}Desc`),
+  }))
+
+  return (
+    <section id="aiTools" className="py-24 px-5 sm:px-8" style={{ backgroundColor: '#0A0A0A' }}>
+      <div className="max-w-7xl mx-auto">
+        <Fade className="mb-16">
+          <span className="block text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-4">
+            {t('aiTools.sectionLabel')}
+          </span>
+          <div className="flex flex-col lg:flex-row lg:items-end gap-8 lg:gap-20">
+            <h2 className="text-4xl sm:text-5xl font-extrabold text-white leading-tight max-w-xl">
+              {t('aiTools.title')}
+            </h2>
+            <p className="text-gray-500 max-w-sm lg:pb-1">
+              {t('aiTools.subtitle')}
+            </p>
+          </div>
+        </Fade>
+
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {tools.map((tool, i) => (
+            <Fade key={tool.tag} delay={i * 80}>
+              <div
+                className="rounded-3xl p-7 border border-white/5 hover:border-white/10 transition-colors cursor-default h-full"
+                style={{ backgroundColor: '#141414' }}
+              >
+                <span
+                  className="block text-[9px] font-extrabold uppercase tracking-widest mb-3"
+                  style={{ color: P }}
+                >
+                  {tool.tag}
+                </span>
+                <h3 className="text-[15px] font-bold text-white mb-2 leading-snug">
+                  {tool.title}
+                </h3>
+                <p className="text-sm text-gray-500 leading-relaxed">
+                  {tool.desc}
+                </p>
+              </div>
+            </Fade>
+          ))}
         </div>
       </div>
     </section>
   )
 }
 
-// ── Footer ─────────────────────────────────────────────────────────────
-function Footer() {
+// ─────────────────────────────────────────────────────────────────────────────
+// Testimonials
+// ─────────────────────────────────────────────────────────────────────────────
+function TestimonialsSection() {
+  const { t } = useTranslation()
+
+  const items = [
+    { text: t('social.t1Text'), name: t('social.t1Name'), role: t('social.t1Role'), initials: 'SO' },
+    { text: t('social.t2Text'), name: t('social.t2Name'), role: t('social.t2Role'), initials: 'AK' },
+    { text: t('social.t3Text'), name: t('social.t3Name'), role: t('social.t3Role'), initials: 'MJ' },
+  ]
+
   return (
-    <footer className="bg-gray-900 text-white pt-16 pb-10">
-      <div className="max-w-7xl mx-auto px-5 sm:px-8">
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-10 pb-12 border-b border-gray-800">
-          <div className="lg:col-span-2">
-            <div className="flex items-center gap-2.5 mb-4">
-              <img src="/logo2.png" alt="LifeKit" className="h-8 w-auto" />
-              <span className="text-lg font-extrabold tracking-tight">LifeKit</span>
-            </div>
-            <p className="text-gray-400 text-sm leading-relaxed max-w-xs">
-              The AI-powered service ecosystem that lets skilled providers earn, swap, and grow together.
-            </p>
-            <div className="mt-6 flex gap-3 flex-wrap">
-              {['iOS App Store', 'Google Play'].map(label => (
-                <div key={label} className="flex items-center gap-2 bg-gray-800 rounded-xl px-4 py-2.5 border border-gray-700">
-                  <Smartphone size={14} className="text-gray-400" />
+    <section id="testimonials" className="py-24 px-5 sm:px-8">
+      <div className="max-w-7xl mx-auto">
+        <Fade className="mb-16">
+          <span className="block text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-4">
+            {t('social.label')}
+          </span>
+          <h2 className="text-4xl sm:text-5xl font-extrabold text-gray-900 leading-tight">
+            {t('social.title')}
+          </h2>
+        </Fade>
+
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {items.map((item, i) => (
+            <Fade key={item.name} delay={i * 100}>
+              <div className="bg-gray-50 rounded-3xl p-7 flex flex-col gap-5 hover:shadow-md transition-shadow h-full">
+                <div className="flex gap-0.5">
+                  {Array.from({ length: 5 }).map((_, j) => (
+                    <Star key={j} size={13} fill="#FBBF24" className="text-amber-400" />
+                  ))}
+                </div>
+                <p className="text-[15px] text-gray-700 leading-relaxed flex-1">
+                  "{item.text}"
+                </p>
+                <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-extrabold shrink-0"
+                    style={{ backgroundColor: P }}
+                  >
+                    {item.initials}
+                  </div>
                   <div>
-                    <p className="text-[9px] text-gray-500 uppercase tracking-wider">Coming soon</p>
-                    <p className="text-xs font-semibold text-gray-200">{label}</p>
+                    <p className="text-sm font-bold text-gray-900">{item.name}</p>
+                    <p className="text-xs text-gray-400">{item.role}</p>
                   </div>
                 </div>
-              ))}
+              </div>
+            </Fade>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Final CTA (maroon gradient)
+// ─────────────────────────────────────────────────────────────────────────────
+function FinalCta() {
+  const { t } = useTranslation()
+
+  return (
+    <section
+      className="py-28 px-5 sm:px-8"
+      style={{
+        background: `linear-gradient(135deg, ${P} 0%, #5a1825 55%, #3d101a 100%)`,
+      }}
+    >
+      <div className="max-w-3xl mx-auto text-center">
+        <Fade>
+          <span className="inline-block text-[10px] font-extrabold uppercase tracking-[0.2em] text-white/55 mb-7">
+            {t('finalCta.badge')}
+          </span>
+          <h2 className="text-5xl sm:text-6xl font-extrabold text-white leading-[1.05] tracking-tight mb-6">
+            {t('finalCta.title1')}<br />
+            {t('finalCta.title2')}
+          </h2>
+          <p className="text-white/70 text-lg max-w-xl mx-auto mb-10 leading-relaxed">
+            {t('finalCta.subtitle')}
+          </p>
+
+          <div className="flex justify-center mb-8">
+            <Link
+              to="/register"
+              className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full bg-white font-semibold hover:opacity-90 hover:shadow-xl transition-all"
+              style={{ color: P }}
+            >
+              {t('finalCta.ctaPrimary')}
+              <ArrowRight size={16} />
+            </Link>
+          </div>
+
+          <p className="text-white/50 text-sm">{t('finalCta.note')}</p>
+        </Fade>
+      </div>
+    </section>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Footer
+// ─────────────────────────────────────────────────────────────────────────────
+function Footer() {
+  const { t } = useTranslation()
+
+  return (
+    <footer className="bg-white border-t border-gray-100 py-16 px-5 sm:px-8">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex flex-col lg:flex-row gap-12 mb-12">
+          <div className="lg:max-w-60">
+            <div className="flex items-center gap-2 mb-4">
+              <img
+                src="/logo2.png"
+                alt="LifeKit"
+                className="h-8 w-auto"
+                onError={e => {
+                  e.currentTarget.style.display = 'none'
+                  const fb = e.currentTarget.nextElementSibling
+                  if (fb) fb.style.display = 'block'
+                }}
+              />
+              <span className="hidden text-xl font-extrabold" style={{ color: P }}>LifeKit</span>
             </div>
+            <p className="text-sm text-gray-400 leading-relaxed">{t('footer.tagline')}</p>
           </div>
 
-          <div>
-            <h4 className="text-sm font-semibold text-gray-300 mb-4">Providers</h4>
-            <ul className="flex flex-col gap-2.5">
-              {['Become a Provider', 'Skill Swap', 'AI Tools', 'Help Center'].map(l => (
-                <li key={l}><a href="#" className="text-sm text-gray-500 hover:text-gray-300 transition-colors">{l}</a></li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="text-sm font-semibold text-gray-300 mb-4">Company</h4>
-            <ul className="flex flex-col gap-2.5">
-              {['About Us', 'Blog', 'Careers', 'Privacy Policy', 'Terms of Service'].map(l => (
-                <li key={l}><a href="#" className="text-sm text-gray-500 hover:text-gray-300 transition-colors">{l}</a></li>
-              ))}
-            </ul>
+          <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 gap-10">
+            <div>
+              <h4 className="text-[10px] font-extrabold uppercase tracking-widest text-gray-900 mb-5">
+                {t('footer.providersHeading')}
+              </h4>
+              <ul className="space-y-3">
+                {[1, 2, 3, 4].map(n => (
+                  <li key={n}>
+                    <a href="#" className="text-sm text-gray-400 hover:text-gray-900 transition-colors">
+                      {t(`footer.link${n}`)}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-[10px] font-extrabold uppercase tracking-widest text-gray-900 mb-5">
+                {t('footer.companyHeading')}
+              </h4>
+              <ul className="space-y-3">
+                {[5, 6, 7, 8, 9].map(n => (
+                  <li key={n}>
+                    <a href="#" className="text-sm text-gray-400 hover:text-gray-900 transition-colors">
+                      {t(`footer.link${n}`)}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-[10px] font-extrabold uppercase tracking-widest text-gray-900 mb-5">
+                {t('footer.comingSoon')}
+              </h4>
+              <div className="space-y-3 text-sm text-gray-400">
+                <div className="flex items-center gap-2">📱 <span>iOS App</span></div>
+                <div className="flex items-center gap-2">🤖 <span>Android App</span></div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="pt-8 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-gray-600">
-          <p>&#169; {new Date().getFullYear()} LifeKit. All rights reserved.</p>
-          <p>Built with care for every skilled professional.</p>
+        <div className="border-t border-gray-100 pt-8 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <p className="text-xs text-gray-300">
+            © {new Date().getFullYear()} LifeKit · {t('footer.rights')}
+          </p>
+          <p className="text-xs text-gray-300">{t('footer.builtWith')}</p>
         </div>
       </div>
     </footer>
   )
 }
 
-// ── Page ───────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Page
+// ─────────────────────────────────────────────────────────────────────────────
 export default function LandingPage() {
   return (
-    <>
+    <div className="min-h-screen">
       <Navbar />
-      <main>
-        <Hero />
-        <StatsBar />
-        <SkillSwap />
-        <Community />
-        <Bookings />
-        <AiTools />
-        <FinalCta />
-      </main>
-      <Footer />
-    </>
+      <Hero />
+      <StatsBar />
+      <ProcessSection />
+      <FeaturesSection />
+      <ScenariosSection />
+      <BookingsSection />
+      <AiToolsSection />
+      <TestimonialsSection />
+      <FinalCta />
+      {/* <Footer /> */}
+    </div>
   )
 }
