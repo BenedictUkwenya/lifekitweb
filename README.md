@@ -1,16 +1,33 @@
-# React + Vite
+# LifeKit — Provider Web
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The provider portal for LifeKit, built with React + Vite. Providers can sign in,
+manage their service listings, and onboard onto the platform.
 
-Currently, two official plugins are available:
+## Tech stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- React 19 + Vite
+- React Router
+- i18next (English, Georgian, Russian)
+- Tailwind CSS v4
+- framer-motion + GSAP (ScrollTrigger) + Lenis for animations
 
-## React Compiler
+## Environment variables
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Create a `.env` file (see `.env` is gitignored):
 
-## Expanding the ESLint configuration
+```
+VITE_API_URL=https://lifekitbackend.vercel.app
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+For local development against a local backend, use:
+
+```
+VITE_API_URL=http://localhost:3000
+```
+
+## Scripts
+
+- `npm run dev` — start the dev server
+- `npm run build` — production build
+- `npm run preview` — preview the production build
+- `npm run lint` — run ESLint
