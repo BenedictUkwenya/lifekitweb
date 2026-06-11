@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -188,6 +188,55 @@ function GraciaChatMockup() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Animated Logo — dramatic entrance + playful hover
+// ─────────────────────────────────────────────────────────────────────────────
+function AnimatedLogo() {
+  return (
+    <Link to="/" className="flex items-center gap-2 shrink-0" aria-label="LifeKit home">
+      <motion.div
+        className="relative"
+        initial={{ opacity: 0, scale: 0.4, rotate: -25, y: -8 }}
+        animate={{ opacity: 1, scale: 1, rotate: 0, y: 0 }}
+        transition={{ type: 'spring', stiffness: 260, damping: 14, delay: 0.1 }}
+        whileHover={{
+          scale: 1.08,
+          rotate: [0, -8, 8, -4, 0],
+          transition: { rotate: { duration: 0.6, ease: 'easeInOut' }, scale: { duration: 0.2 } },
+        }}
+        whileTap={{ scale: 0.92 }}
+      >
+        <img
+          src="/logo2.png"
+          alt="LifeKit"
+          className="h-8 sm:h-9 w-auto select-none"
+          draggable={false}
+          onError={e => {
+            e.currentTarget.style.display = 'none'
+            const fb = e.currentTarget.nextElementSibling
+            if (fb) fb.style.display = 'block'
+          }}
+        />
+        <span className="hidden text-2xl font-extrabold tracking-tight" style={{ color: P }}>LifeKit</span>
+
+        {/* Sweeping shine overlay */}
+        <motion.span
+          aria-hidden
+          className="pointer-events-none absolute inset-0 overflow-hidden rounded-md"
+        >
+          <motion.span
+            className="absolute top-0 -left-1/3 h-full w-1/3 skew-x-[-20deg]"
+            style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.65), transparent)' }}
+            initial={{ x: '-150%' }}
+            animate={{ x: '350%' }}
+            transition={{ duration: 1.1, ease: 'easeInOut', delay: 1.0 }}
+          />
+        </motion.span>
+      </motion.div>
+    </Link>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Navbar
 // ─────────────────────────────────────────────────────────────────────────────
 function Navbar() {
@@ -201,6 +250,12 @@ function Navbar() {
     return () => window.removeEventListener('scroll', fn)
   }, [])
 
+  // Lock body scroll while the mobile menu is open.
+  useEffect(() => {
+    document.body.style.overflow = open ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
+  }, [open])
+
   const links = [
     { href: '#features',     label: t('nav.features')     },
     { href: '#process',      label: t('nav.process')      },
@@ -209,22 +264,15 @@ function Navbar() {
   ]
 
   return (
-    <nav className={`fixed inset-x-0 top-0 z-50 transition-all duration-200 ${scrolled ? 'bg-white/96 backdrop-blur-sm shadow-sm' : 'bg-white'}`}>
-      <div className="max-w-7xl mx-auto px-5 sm:px-8 h-16 flex items-center gap-4">
+    <motion.nav
+      initial={{ y: -72 }}
+      animate={{ y: 0 }}
+      transition={{ type: 'spring', stiffness: 200, damping: 24 }}
+      className={`fixed inset-x-0 top-0 z-50 transition-shadow duration-200 ${scrolled ? 'bg-white/95 backdrop-blur-sm shadow-sm' : 'bg-white'}`}
+    >
+      <div className="max-w-7xl mx-auto px-4 sm:px-8 h-16 flex items-center justify-between gap-3">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2 shrink-0 mr-4">
-          <img
-            src="/logo2.png"
-            alt="LifeKit"
-            className="h-8 w-auto"
-            onError={e => {
-              e.currentTarget.style.display = 'none'
-              const fb = e.currentTarget.nextElementSibling
-              if (fb) fb.style.display = 'block'
-            }}
-          />
-          <span className="hidden text-2xl font-extrabold tracking-tight" style={{ color: P }}>LifeKit</span>
-        </Link>
+        <AnimatedLogo />
 
         {/* Desktop links */}
         <div className="hidden md:flex items-center gap-7 mx-auto">
@@ -236,51 +284,106 @@ function Navbar() {
         </div>
 
         {/* Right */}
-        <div className="flex items-center gap-2 ml-auto">
+        <div className="flex items-center gap-2">
           <LanguageSwitcher />
-          <Link to="/login" className="hidden sm:block text-sm font-medium text-gray-600 hover:text-gray-900 px-3 py-1.5 transition-colors">
+
+          {/* Desktop-only auth actions */}
+          <Link to="/login" className="hidden md:block text-sm font-medium text-gray-600 hover:text-gray-900 px-3 py-1.5 transition-colors">
             {t('nav.signIn')}
           </Link>
           <Link
             to="/register"
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-semibold hover:opacity-90 transition-opacity"
+            className="hidden md:inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-semibold hover:opacity-90 transition-opacity"
             style={{ backgroundColor: P }}
           >
             {t('nav.joinAsProvider')}
           </Link>
+
+          {/* Mobile menu toggle */}
           <button
-            className="md:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100 ml-1 transition-colors"
-            onClick={() => setOpen(!open)}
+            className="md:hidden p-2 -mr-1 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+            onClick={() => setOpen(o => !o)}
             aria-label="Toggle menu"
+            aria-expanded={open}
           >
-            {open ? <X size={20} /> : <Menu size={20} />}
+            <motion.span
+              key={open ? 'x' : 'menu'}
+              initial={{ rotate: -90, opacity: 0 }}
+              animate={{ rotate: 0, opacity: 1 }}
+              transition={{ duration: 0.18 }}
+              className="block"
+            >
+              {open ? <X size={22} /> : <Menu size={22} />}
+            </motion.span>
           </button>
         </div>
       </div>
 
       {/* Mobile menu */}
-      {open && (
-        <div className="md:hidden bg-white border-t border-gray-100 py-4 px-5 space-y-0.5">
-          {links.map(({ href, label }) => (
-            <a
-              key={href}
-              href={href}
-              className="block py-3 text-sm font-medium text-gray-700 hover:text-gray-900 border-b border-gray-50 last:border-0"
+      <AnimatePresence>
+        {open && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              className="md:hidden fixed inset-0 top-16 -z-10 bg-black/20"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
               onClick={() => setOpen(false)}
+            />
+
+            {/* Panel */}
+            <motion.div
+              className="md:hidden bg-white border-t border-gray-100 px-5 pt-2 pb-6 shadow-lg"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+              style={{ overflow: 'hidden' }}
             >
-              {label}
-            </a>
-          ))}
-          <Link
-            to="/login"
-            className="block pt-3 text-sm font-medium text-gray-500"
-            onClick={() => setOpen(false)}
-          >
-            {t('nav.signIn')}
-          </Link>
-        </div>
-      )}
-    </nav>
+              {links.map(({ href, label }, i) => (
+                <motion.a
+                  key={href}
+                  href={href}
+                  className="block py-3.5 text-[15px] font-medium text-gray-700 hover:text-gray-900 border-b border-gray-50"
+                  onClick={() => setOpen(false)}
+                  initial={{ opacity: 0, x: -12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.06 + i * 0.05 }}
+                >
+                  {label}
+                </motion.a>
+              ))}
+
+              {/* Auth actions in the menu */}
+              <motion.div
+                className="flex flex-col gap-2.5 pt-4"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.06 + links.length * 0.05 }}
+              >
+                <Link
+                  to="/register"
+                  className="inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl text-white text-[15px] font-semibold hover:opacity-90 transition-opacity"
+                  style={{ backgroundColor: P }}
+                  onClick={() => setOpen(false)}
+                >
+                  {t('nav.joinAsProvider')}
+                </Link>
+                <Link
+                  to="/login"
+                  className="inline-flex items-center justify-center px-4 py-3 rounded-xl text-gray-700 text-[15px] font-semibold border border-gray-200 hover:border-gray-300 transition-colors"
+                  onClick={() => setOpen(false)}
+                >
+                  {t('nav.signIn')}
+                </Link>
+              </motion.div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </motion.nav>
   )
 }
 
