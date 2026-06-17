@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from 'react'
+import { createElement, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -6,6 +6,7 @@ import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import LanguageSwitcher from '../components/LanguageSwitcher'
+import { ContainerTextFlip } from '../components/ui/container-text-flip'
 import {
   ArrowRight, ArrowUp, Star, Users, Calendar,
   Repeat2, Clock, Shield, Store, Sparkles, Menu, X
@@ -14,6 +15,7 @@ import {
 gsap.registerPlugin(ScrollTrigger, useGSAP)
 
 const P = '#89273B'
+const Motion = motion
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Motion helpers
@@ -144,7 +146,7 @@ function GraciaChatMockup() {
           </div>
         </div>
 
-        {/* AI message bubble */}
+        {/* Assistant message bubble */}
         <div className="bg-gray-100 rounded-2xl rounded-tl-md px-4 py-3 mb-5">
           <p className="text-[13px] text-gray-700 leading-relaxed">{t('hero.mockupMessage')}</p>
         </div>
@@ -188,12 +190,12 @@ function GraciaChatMockup() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Animated Logo — dramatic entrance + playful hover
+// Animated Logo: dramatic entrance + playful hover
 // ─────────────────────────────────────────────────────────────────────────────
 function AnimatedLogo() {
   return (
     <Link to="/" className="flex items-center gap-2 shrink-0" aria-label="LifeKit home">
-      <motion.div
+      <Motion.div
         className="relative"
         initial={{ opacity: 0, scale: 0.4, rotate: -25, y: -8 }}
         animate={{ opacity: 1, scale: 1, rotate: 0, y: 0 }}
@@ -219,19 +221,19 @@ function AnimatedLogo() {
         <span className="hidden text-2xl font-extrabold tracking-tight" style={{ color: P }}>LifeKit</span>
 
         {/* Sweeping shine overlay */}
-        <motion.span
+        <Motion.span
           aria-hidden
           className="pointer-events-none absolute inset-0 overflow-hidden rounded-md"
         >
-          <motion.span
+          <Motion.span
             className="absolute top-0 -left-1/3 h-full w-1/3 skew-x-[-20deg]"
             style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.65), transparent)' }}
             initial={{ x: '-150%' }}
             animate={{ x: '350%' }}
             transition={{ duration: 1.1, ease: 'easeInOut', delay: 1.0 }}
           />
-        </motion.span>
-      </motion.div>
+        </Motion.span>
+      </Motion.div>
     </Link>
   )
 }
@@ -264,7 +266,7 @@ function Navbar() {
   ]
 
   return (
-    <motion.nav
+    <Motion.nav
       initial={{ y: -72 }}
       animate={{ y: 0 }}
       transition={{ type: 'spring', stiffness: 200, damping: 24 }}
@@ -306,7 +308,7 @@ function Navbar() {
             aria-label="Toggle menu"
             aria-expanded={open}
           >
-            <motion.span
+            <Motion.span
               key={open ? 'x' : 'menu'}
               initial={{ rotate: -90, opacity: 0 }}
               animate={{ rotate: 0, opacity: 1 }}
@@ -314,7 +316,7 @@ function Navbar() {
               className="block"
             >
               {open ? <X size={22} /> : <Menu size={22} />}
-            </motion.span>
+            </Motion.span>
           </button>
         </div>
       </div>
@@ -324,7 +326,7 @@ function Navbar() {
         {open && (
           <>
             {/* Backdrop */}
-            <motion.div
+            <Motion.div
               className="md:hidden fixed inset-0 top-16 -z-10 bg-black/20"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -334,7 +336,7 @@ function Navbar() {
             />
 
             {/* Panel */}
-            <motion.div
+            <Motion.div
               className="md:hidden bg-white border-t border-gray-100 px-5 pt-2 pb-6 shadow-lg"
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
@@ -343,7 +345,7 @@ function Navbar() {
               style={{ overflow: 'hidden' }}
             >
               {links.map(({ href, label }, i) => (
-                <motion.a
+                <Motion.a
                   key={href}
                   href={href}
                   className="block py-3.5 text-[15px] font-medium text-gray-700 hover:text-gray-900 border-b border-gray-50"
@@ -353,11 +355,11 @@ function Navbar() {
                   transition={{ delay: 0.06 + i * 0.05 }}
                 >
                   {label}
-                </motion.a>
+                </Motion.a>
               ))}
 
               {/* Auth actions in the menu */}
-              <motion.div
+              <Motion.div
                 className="flex flex-col gap-2.5 pt-4"
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -378,12 +380,12 @@ function Navbar() {
                 >
                   {t('nav.signIn')}
                 </Link>
-              </motion.div>
-            </motion.div>
+              </Motion.div>
+            </Motion.div>
           </>
         )}
       </AnimatePresence>
-    </motion.nav>
+    </Motion.nav>
   )
 }
 
@@ -393,11 +395,16 @@ function Navbar() {
 function Hero() {
   const { t } = useTranslation()
 
-  const lines = [t('hero.titlePart1'), t('hero.titlePart2')]
+  const flipWords = [
+    t('hero.flipWord1'),
+    t('hero.flipWord2'),
+    t('hero.flipWord3'),
+    t('hero.flipWord4'),
+  ]
 
   const headlineContainer = {
     hidden: {},
-    visible: { transition: { staggerChildren: 0.08 } },
+    visible: { transition: { staggerChildren: 0.12 } },
   }
   const wordVariant = {
     hidden: { opacity: 0, y: 24 },
@@ -413,36 +420,38 @@ function Hero() {
 
         {/* Left */}
         <div className="flex-1 max-w-xl">
-          <motion.h1
+          <Motion.h1
             className="text-[3.4rem] sm:text-[4.25rem] lg:text-[5rem] font-extrabold tracking-tight text-gray-900 leading-[1.02] mb-7"
             variants={headlineContainer}
             initial="hidden"
             animate="visible"
           >
-            {lines.map((line, li) => (
-              <span key={li} className="block">
-                {line.split(' ').map((word, wi, arr) => (
-                  <Fragment key={wi}>
-                    <motion.span className="inline-block" variants={wordVariant}>
-                      {word}
-                    </motion.span>
-                    {wi < arr.length - 1 ? ' ' : ''}
-                  </Fragment>
-                ))}
-              </span>
-            ))}
-          </motion.h1>
+            <span className="block">
+              <Motion.span className="inline-block" variants={wordVariant}>
+                {t('hero.titlePart1')}
+              </Motion.span>{' '}
+              <ContainerTextFlip
+                words={flipWords}
+                interval={2400}
+                className="top-[0.08em] mx-1"
+                textClassName="px-1"
+              />
+            </span>
+            <Motion.span className="block mt-3" variants={wordVariant}>
+              {t('hero.titlePart2')}
+            </Motion.span>
+          </Motion.h1>
 
-          <motion.p
+          <Motion.p
             className="text-[1.1rem] text-gray-500 leading-relaxed mb-9 max-w-md"
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 1.05, ease: [0.16, 1, 0.3, 1] }}
           >
             {t('hero.subtitle')}
-          </motion.p>
+          </Motion.p>
 
-          <motion.div
+          <Motion.div
             className="flex flex-col sm:flex-row sm:items-center gap-5 mb-6"
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
@@ -462,27 +471,27 @@ function Hero() {
             >
               {t('hero.ctaSecondary')} →
             </a>
-          </motion.div>
+          </Motion.div>
 
-          <motion.p
+          <Motion.p
             className="text-[13px] text-gray-400"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.95 }}
           >
             {t('hero.note')}
-          </motion.p>
+          </Motion.p>
         </div>
 
         {/* Right */}
-        <motion.div
+        <Motion.div
           className="flex-1 flex justify-center lg:justify-end w-full"
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: 'spring', stiffness: 120, damping: 18, delay: 0.5 }}
         >
           <GraciaChatMockup />
-        </motion.div>
+        </Motion.div>
       </div>
     </section>
   )
@@ -607,7 +616,7 @@ function ProcessSection() {
         <div ref={gridRef} className="grid md:grid-cols-3 gap-5">
           {steps.map((step) => (
             <div key={step.num} className="reveal-item h-full">
-              <motion.div
+              <Motion.div
                 whileHover={{ y: -6, boxShadow: '0 22px 45px -18px rgba(0,0,0,0.22)' }}
                 transition={{ type: 'spring', stiffness: 300, damping: 22 }}
                 className="relative bg-white rounded-2xl border border-gray-100 p-7 pb-10 h-full overflow-hidden"
@@ -629,7 +638,7 @@ function ProcessSection() {
                 <p className="text-sm text-gray-400 leading-relaxed relative z-10">
                   {step.desc}
                 </p>
-              </motion.div>
+              </Motion.div>
             </div>
           ))}
         </div>
@@ -657,7 +666,7 @@ function FeaturesSection() {
   return (
     <section id="features" className="py-24 px-5 sm:px-8">
       <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-12 lg:gap-16">
-        {/* Heading — left */}
+        {/* Heading: left */}
         <Fade className="lg:w-80 shrink-0">
           <span className="block text-[10px] font-extrabold uppercase tracking-widest mb-4" style={{ color: P }}>
             {t('features.label')}
@@ -667,7 +676,7 @@ function FeaturesSection() {
           </h2>
         </Fade>
 
-        {/* Grid — right */}
+        {/* Grid: right */}
         <div ref={gridRef} className="flex-1 grid sm:grid-cols-2 gap-5">
           {cards.map(({ title, desc, Icon }) => (
             <div key={title} className="reveal-item h-full">
@@ -676,7 +685,7 @@ function FeaturesSection() {
                   className="w-10 h-10 rounded-xl flex items-center justify-center mb-auto"
                   style={{ backgroundColor: `${P}10` }}
                 >
-                  <Icon size={18} color={P} />
+                  {createElement(Icon, { size: 18, color: P })}
                 </div>
                 <div className="mt-12">
                   <h3 className="text-[15px] font-bold mb-2 leading-snug" style={{ color: P }}>
@@ -808,7 +817,7 @@ function BookingsSection() {
                     className="w-10 h-10 rounded-2xl flex items-center justify-center text-white shrink-0"
                     style={{ backgroundColor: P }}
                   >
-                    <Icon size={17} />
+                    {createElement(Icon, { size: 17 })}
                   </div>
                   <div>
                     <p className="font-semibold text-gray-900 mb-1">{title}</p>
@@ -890,7 +899,7 @@ function BookingsSection() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// AI Tools Section (dark)
+// Smart Tools Section (dark)
 // ─────────────────────────────────────────────────────────────────────────────
 function AiToolsSection() {
   const { t } = useTranslation()

@@ -1,4 +1,4 @@
-# LifeKit — Provider Web
+# LifeKit Provider Web
 
 The provider portal for LifeKit, built with React + Vite. Providers can sign in,
 manage their service listings, and onboard onto the platform.
@@ -27,7 +27,7 @@ VITE_API_URL=http://localhost:3000
 
 ## Scripts
 
-- `npm run dev` — start the dev server
-- `npm run build` — production build
-- `npm run preview` — preview the production build
-- `npm run lint` — run ESLint
+- `npm run dev`: start the dev server
+- `npm run build`: production build
+- `npm run preview`: preview the production build
+- `npm run lint`: run ESLint

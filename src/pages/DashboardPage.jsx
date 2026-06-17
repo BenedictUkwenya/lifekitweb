@@ -133,7 +133,7 @@ function CreateServiceWizard({ onClose, onSuccess, addToast }) {
       .then(({ data }) => setMainCats(data.categories || []))
       .catch(() => addToast(t('dashboard.failedLoadCategories'), 'error'))
       .finally(() => setLoadingMain(false))
-  }, [])
+  }, [addToast, t])
 
   const selectMainCat = async (cat) => {
     setError('')
@@ -716,7 +716,11 @@ export default function DashboardPage() {
     const stored = localStorage.getItem('provider_user')
     if (!token) { navigate('/login'); return }
     if (stored) {
-      try { setUser(JSON.parse(stored)) } catch (_) {}
+      try {
+        setUser(JSON.parse(stored))
+      } catch {
+        localStorage.removeItem('provider_user')
+      }
     }
   }, [navigate])
 

@@ -12,6 +12,8 @@ import DashboardPage from './pages/DashboardPage'
 
 gsap.registerPlugin(ScrollTrigger)
 
+const Motion = motion
+
 /**
  * Initialise Lenis smooth scroll and drive it from GSAP's ticker so that
  * Lenis and ScrollTrigger stay perfectly in sync.
@@ -46,7 +48,7 @@ function AnimatedRoutes() {
 
   return (
     <AnimatePresence mode="wait">
-      <motion.div
+      <Motion.div
         key={location.pathname}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -59,7 +61,7 @@ function AnimatedRoutes() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
         </Routes>
-      </motion.div>
+      </Motion.div>
     </AnimatePresence>
   )
 }
