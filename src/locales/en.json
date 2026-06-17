@@ -74,8 +74,8 @@
   },
   "bookings": {
     "sectionLabel": "Bookings",
-    "title1": "Book in 60 seconds.",
-    "titleHighlight": "Get paid instantly.",
+    "title1": "Get booked in 60 seconds.",
+    "titleHighlight": "Get paid securely.",
     "subtitle": "Customers build a cart of services, pay through our secure escrow system, and you get notified immediately. Pricing, scheduling, and payouts are handled for you.",
     "feature1Title": "Multi-service cart",
     "feature1Desc": "Customers can book multiple services from multiple providers in a single checkout.",
