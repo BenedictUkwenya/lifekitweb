@@ -25,7 +25,7 @@
     "mockupAction1": "Find coworking",
     "mockupAction2": "Meet locals",
     "mockupAction3": "Open a bank account",
-    "mockupInput": "Ask Kit anything...",
+    "mockupInput": "Ask Gracey anything...",
     "mockupNearby": "2 people near you · tap to view"
   },
   "stats": {
@@ -39,17 +39,17 @@
   "process": {
     "label": "The Process",
     "title": "From landed to settled in three moves.",
-    "step1Title": "Ask Kit",
-    "step1Desc": "Tell Kit where you are, what you need, and what you can offer. It listens like a person, not a search engine.",
+    "step1Title": "Ask Gracey",
+    "step1Desc": "Tell Gracey where you are, what you need, and what you can offer. She listens like a person, not a search engine.",
     "step2Title": "Discover",
-    "step2Desc": "Kit shows services, opportunities, and communities that fit your situation, instead of another generic feed.",
+    "step2Desc": "Gracey shows services, opportunities, and communities that fit your situation, instead of another generic feed.",
     "step3Title": "Connect & Earn",
     "step3Desc": "Book services, swap skills, join your people. Start building a life that works."
   },
   "features": {
     "label": "What's Inside",
     "title": "Everything you need. Nothing you don't.",
-    "f1Title": "Life Assistant (Kit)",
+    "f1Title": "Life Assistant (Gracey)",
     "f1Desc": "A practical assistant for finding services, answering questions, and planning your next move wherever you land.",
     "f2Title": "Service Marketplace",
     "f2Desc": "Book trusted local services in seconds, or list your own and get discovered by people who need you.",
@@ -64,7 +64,7 @@
     "imagePlaceholder": "Add your image here",
     "s1Label": "Scenario 01",
     "s1Title": "Just landed in a new city?",
-    "s1Desc": "Kit helps with your first week, from SIM cards and coworking spaces to people worth meeting.",
+    "s1Desc": "Gracey helps with your first week, from SIM cards and coworking spaces to people worth meeting.",
     "s2Label": "Scenario 02",
     "s2Title": "Want to earn while you settle?",
     "s2Desc": "The Opportunity Engine matches your skills with demand nearby. No job board scrolling.",
@@ -96,7 +96,7 @@
     "tool2Desc": "Describe your skill in plain language. LifeKit drafts the title, description, and price in seconds.",
     "tool3Tag": "24/7 Concierge",
     "tool3Title": "Always-on support for every customer",
-    "tool3Desc": "Kit helps customers find services, get quick answers, and book at any time of day.",
+    "tool3Desc": "Gracey helps customers find services, get quick answers, and book at any time of day.",
     "tool4Tag": "Onboarding Planner",
     "tool4Title": "A 7-day plan built just for you",
     "tool4Desc": "A personalised onboarding roadmap guides new providers through their first bookings step by step.",

@@ -139,7 +139,7 @@ function GraciaChatMockup() {
           <div
             className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-extrabold shrink-0"
             style={{ backgroundColor: P }}
-          >K</div>
+          >G</div>
           <div className="flex items-center gap-1.5">
             <span className="text-[13px] font-bold text-gray-900">{t('hero.mockupName')}</span>
             <span className="text-[11px] text-gray-400">· {t('hero.mockupRole')}</span>
