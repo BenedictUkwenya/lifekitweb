@@ -168,9 +168,9 @@ export default function LoginPage() {
             <div>
               <div className="flex justify-between items-center mb-1.5">
                 <label className="block text-sm font-medium text-gray-700">{t('login.passwordLabel')}</label>
-                <a href="#" className="text-xs font-medium hover:underline" style={{ color: PRIMARY }}>
+                <Link to="/forgot-password" className="text-xs font-medium hover:underline" style={{ color: PRIMARY }}>
                   {t('login.forgotPassword')}
-                </a>
+                </Link>
               </div>
               <div className="relative">
                 <input
