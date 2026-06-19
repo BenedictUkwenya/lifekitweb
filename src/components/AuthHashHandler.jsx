@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { hasAuthHash, isExpiredAuthHash, isRecoveryHash, parseHashParams } from '../utils/authHash'
+import { hasAuthHash, hasRecoveryCode, isExpiredAuthHash, isRecoveryHash, parseHashParams } from '../utils/authHash'
 
 /**
  * Supabase password-reset links put tokens in the URL hash. If the redirect
@@ -16,8 +16,9 @@ export default function AuthHashHandler({ children }) {
     const params = parseHashParams()
     const hash = window.location.hash
 
-    if (isRecoveryHash(params) && location.pathname !== '/reset-password') {
-      navigate(`/reset-password${hash}`, { replace: true })
+    if ((isRecoveryHash(params) || hasRecoveryCode()) && location.pathname !== '/reset-password') {
+      const suffix = hasRecoveryCode() ? window.location.search : hash
+      navigate(`/reset-password${suffix}`, { replace: true })
       return
     }
 

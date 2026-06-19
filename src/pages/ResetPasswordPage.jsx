@@ -8,12 +8,31 @@ import { isExpiredAuthHash, parseHashParams } from '../utils/authHash'
 
 const PRIMARY = '#89273B'
 const API = import.meta.env.VITE_API_URL
+const TOKEN_STORAGE_KEY = 'lifekit_reset_tokens'
+
+function loadStoredTokens() {
+  try {
+    const raw = sessionStorage.getItem(TOKEN_STORAGE_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+function storeTokens(tokens) {
+  sessionStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify(tokens))
+}
+
+function clearStoredTokens() {
+  sessionStorage.removeItem(TOKEN_STORAGE_KEY)
+}
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate()
   const { t } = useTranslation()
 
-  const [tokens, setTokens] = useState({ access_token: '', refresh_token: '' })
+  const [tokens, setTokens] = useState({ access_token: '', refresh_token: '', code: '' })
+  const [sessionReady, setSessionReady] = useState(false)
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [showPw, setShowPw] = useState(false)
@@ -24,8 +43,11 @@ export default function ResetPasswordPage() {
 
   useEffect(() => {
     const params = parseHashParams()
+    const query = new URLSearchParams(window.location.search)
+    const code = query.get('code') || ''
 
     if (isExpiredAuthHash(params)) {
+      clearStoredTokens()
       setLinkInvalid(true)
       window.history.replaceState(null, '', window.location.pathname)
       return
@@ -35,16 +57,37 @@ export default function ResetPasswordPage() {
     const refreshToken = params.get('refresh_token') || ''
     const type = params.get('type')
 
-    if (accessToken && (type === 'recovery' || !type)) {
-      setTokens({ access_token: accessToken, refresh_token: refreshToken })
+    if (code) {
+      const next = { access_token: '', refresh_token: '', code }
+      setTokens(next)
+      storeTokens(next)
+      setSessionReady(true)
       window.history.replaceState(null, '', window.location.pathname)
-    } else {
-      setLinkInvalid(true)
+      return
     }
+
+    if (accessToken && (type === 'recovery' || !type)) {
+      const next = { access_token: accessToken, refresh_token: refreshToken, code: '' }
+      setTokens(next)
+      storeTokens(next)
+      setSessionReady(true)
+      window.history.replaceState(null, '', window.location.pathname)
+      return
+    }
+
+    const stored = loadStoredTokens()
+    if (stored?.access_token || stored?.code) {
+      setTokens(stored)
+      setSessionReady(true)
+      return
+    }
+
+    setLinkInvalid(true)
   }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (!sessionReady) return setError(t('resetPassword.errorGeneric'))
     if (password.length < 6) return setError(t('resetPassword.errorShort'))
     if (password !== confirm) return setError(t('resetPassword.errorMatch'))
 
@@ -54,15 +97,25 @@ export default function ResetPasswordPage() {
     try {
       await axios.post(`${API}/auth/reset-password`, {
         new_password: password,
-        access_token: tokens.access_token,
-        refresh_token: tokens.refresh_token,
+        access_token: tokens.access_token || undefined,
+        refresh_token: tokens.refresh_token || undefined,
+        code: tokens.code || undefined,
       })
+      clearStoredTokens()
       setDone(true)
     } catch (err) {
       setError(err.response?.data?.error || t('resetPassword.errorGeneric'))
     } finally {
       setLoading(false)
     }
+  }
+
+  if (!sessionReady && !linkInvalid) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <Loader2 size={28} className="animate-spin" style={{ color: PRIMARY }} />
+      </div>
+    )
   }
 
   if (linkInvalid) {

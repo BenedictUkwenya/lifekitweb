@@ -4,8 +4,9 @@ export function parseHashParams() {
   return new URLSearchParams(raw.startsWith('#') ? raw.slice(1) : raw)
 }
 
-/** Returns true when the URL hash carries a Supabase auth payload. */
+/** Returns true when the URL carries a Supabase auth payload. */
 export function hasAuthHash() {
+  if (new URLSearchParams(window.location.search).has('code')) return true
   const params = parseHashParams()
   return (
     params.has('access_token') ||
@@ -17,6 +18,10 @@ export function hasAuthHash() {
 export function isRecoveryHash(params) {
   const type = params.get('type')
   return Boolean(params.get('access_token') && (type === 'recovery' || !type))
+}
+
+export function hasRecoveryCode() {
+  return new URLSearchParams(window.location.search).has('code')
 }
 
 export function isExpiredAuthHash(params) {
