@@ -11,6 +11,7 @@ import RegisterPage from './pages/RegisterPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 import DashboardPage from './pages/DashboardPage'
+import AuthHashHandler from './components/AuthHashHandler'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -76,8 +77,9 @@ export default function App() {
   return (
     <MotionConfig reducedMotion="never">
       <BrowserRouter>
-        <AnimatedRoutes />
+        <AuthHashHandler>
+          <AnimatedRoutes />
+        </AuthHashHandler>
       </BrowserRouter>
-    </MotionConfig>
-  )
+    </MotionConfig>  )
 }

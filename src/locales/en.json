@@ -181,7 +181,8 @@
     "successMessage": "If an account exists for {{email}}, we sent a password reset link.",
     "spamHint": "Didn't receive it? Check your spam folder.",
     "errorRequired": "Email is required.",
-    "errorGeneric": "Something went wrong. Please try again."
+    "errorGeneric": "Something went wrong. Please try again.",
+    "linkExpired": "That reset link has expired or was already used. Request a new one below and open it right away."
   },
   "resetPassword": {
     "title": "Choose a new password",

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import axios from 'axios'
 import { Sparkles, ArrowLeft, ArrowRight, Loader2, MailCheck } from 'lucide-react'
@@ -10,6 +10,8 @@ const API = import.meta.env.VITE_API_URL
 
 export default function ForgotPasswordPage() {
   const { t } = useTranslation()
+  const [searchParams] = useSearchParams()
+  const linkExpired = searchParams.get('error') === 'otp_expired'
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -60,6 +62,13 @@ export default function ForgotPasswordPage() {
 
             <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900">{t('forgotPassword.title')}</h2>
             <p className="mt-2 text-gray-500 text-sm">{t('forgotPassword.subtitle')}</p>
+
+            {linkExpired && (
+              <div className="mt-4 flex items-start gap-2.5 bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-xl px-4 py-3">
+                <span className="mt-0.5 flex-shrink-0">⚠</span>
+                {t('forgotPassword.linkExpired')}
+              </div>
+            )}
 
             <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-5" noValidate>
               <div>

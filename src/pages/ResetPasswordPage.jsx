@@ -4,14 +4,10 @@ import { useTranslation } from 'react-i18next'
 import axios from 'axios'
 import { Sparkles, Eye, EyeOff, Loader2, CheckCircle2, ArrowRight } from 'lucide-react'
 import LanguageSwitcher from '../components/LanguageSwitcher'
+import { isExpiredAuthHash, parseHashParams } from '../utils/authHash'
 
 const PRIMARY = '#89273B'
 const API = import.meta.env.VITE_API_URL
-
-function parseHashParams() {
-  const hash = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : window.location.hash
-  return new URLSearchParams(hash)
-}
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate()
@@ -28,6 +24,13 @@ export default function ResetPasswordPage() {
 
   useEffect(() => {
     const params = parseHashParams()
+
+    if (isExpiredAuthHash(params)) {
+      setLinkInvalid(true)
+      window.history.replaceState(null, '', window.location.pathname)
+      return
+    }
+
     const accessToken = params.get('access_token') || ''
     const refreshToken = params.get('refresh_token') || ''
     const type = params.get('type')
