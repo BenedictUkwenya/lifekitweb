@@ -9,7 +9,7 @@ const PRIMARY = '#89273B'
 const API = import.meta.env.VITE_API_URL
 
 export default function ForgotPasswordPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [searchParams] = useSearchParams()
   const linkExpired = searchParams.get('error') === 'otp_expired'
   const [email, setEmail] = useState('')
@@ -28,6 +28,7 @@ export default function ForgotPasswordPage() {
       await axios.post(`${API}/auth/forgot-password`, {
         email: email.trim().toLowerCase(),
         redirect_to: `${window.location.origin}/reset-password`,
+        language: (i18n.language || 'en').split('-')[0],
       })
       setSent(true)
     } catch (err) {

@@ -97,7 +97,7 @@ function OtpInput({ value, onChange, disabled }) {
 
 export default function RegisterPage() {
   const navigate = useNavigate()
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
 
   const [step, setStep] = useState('details')
   const [form, setForm] = useState({ full_name: '', email: '', password: '', confirm_password: '' })
@@ -128,6 +128,7 @@ export default function RegisterPage() {
     confirm_password: form.confirm_password,
     is_provider_signup: true,
     is_web_signup: true,
+    language: (i18n.language || 'en').split('-')[0],
   })
 
   const handleSignup = async (e) => {
