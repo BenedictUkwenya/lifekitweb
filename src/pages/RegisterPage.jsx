@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import axios from 'axios'
@@ -106,6 +106,14 @@ export default function RegisterPage() {
   const [showConfirm, setShowConfirm] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [cooldown, setCooldown] = useState(0)
+  const sendingRef = useRef(false)
+
+  useEffect(() => {
+    if (cooldown <= 0) return undefined
+    const id = setTimeout(() => setCooldown((c) => Math.max(0, c - 1)), 1000)
+    return () => clearTimeout(id)
+  }, [cooldown])
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
@@ -135,7 +143,9 @@ export default function RegisterPage() {
     e.preventDefault()
     const validationError = validate()
     if (validationError) return setError(validationError)
+    if (sendingRef.current || loading) return
 
+    sendingRef.current = true
     setLoading(true)
     setError('')
 
@@ -143,23 +153,41 @@ export default function RegisterPage() {
       await axios.post(`${API}/auth/signup`, signupPayload())
       setOtp('')
       setStep('verify')
+      setCooldown(60)
     } catch (err) {
-      setError(friendlyAuthError(err, t('register.errorGeneric')))
+      if (err.response?.status === 429) {
+        setCooldown(err.response?.data?.retryAfterSec || 60)
+        setStep('verify')
+        setError(err.response?.data?.error || t('register.errorResend'))
+      } else {
+        setError(friendlyAuthError(err, t('register.errorGeneric')))
+      }
     } finally {
+      sendingRef.current = false
       setLoading(false)
     }
   }
 
   const handleResendOtp = async () => {
+    if (loading || sendingRef.current || cooldown > 0) return
+
+    sendingRef.current = true
     setLoading(true)
     setError('')
 
     try {
       await axios.post(`${API}/auth/signup`, signupPayload())
       setOtp('')
+      setCooldown(60)
     } catch (err) {
-      setError(friendlyAuthError(err, t('register.errorResend')))
+      if (err.response?.status === 429) {
+        setCooldown(err.response?.data?.retryAfterSec || 60)
+        setError(err.response?.data?.error || t('register.errorResend'))
+      } else {
+        setError(friendlyAuthError(err, t('register.errorResend')))
+      }
     } finally {
+      sendingRef.current = false
       setLoading(false)
     }
   }
@@ -313,11 +341,15 @@ export default function RegisterPage() {
                 <button
                   type="button"
                   onClick={handleResendOtp}
-                  disabled={loading}
-                  className="text-sm font-semibold hover:underline disabled:opacity-50 transition-opacity"
+                  disabled={loading || cooldown > 0}
+                  className="text-sm font-semibold hover:underline disabled:opacity-50 disabled:no-underline transition-opacity"
                   style={{ color: PRIMARY }}
                 >
-                  {loading ? t('register.otpResending') : t('register.otpResend')}
+                  {loading
+                    ? t('register.otpResending')
+                    : cooldown > 0
+                      ? t('login.verifyWait', { seconds: cooldown })
+                      : t('register.otpResend')}
                 </button>
 
                 <p className="text-center text-xs text-gray-400">

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import axios from 'axios'
@@ -103,6 +103,10 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [info, setInfo] = useState('')
+  const [cooldown, setCooldown] = useState(0)
+
+  const sendingRef = useRef(false)
+  const submitLockRef = useRef(false)
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
@@ -112,12 +116,42 @@ export default function LoginPage() {
 
   const lang = (i18n.language || 'en').split('-')[0]
 
+  const startCooldown = (seconds = 60) => {
+    setCooldown(seconds)
+  }
+
+  // Tick cooldown timer
+  useEffect(() => {
+    if (cooldown <= 0) return undefined
+    const id = setTimeout(() => setCooldown((c) => Math.max(0, c - 1)), 1000)
+    return () => clearTimeout(id)
+  }, [cooldown])
+
   const sendVerificationCode = async () => {
-    await axios.post(`${API}/auth/resend-otp`, {
-      email: form.email.trim().toLowerCase(),
-      password: form.password,
-      language: lang,
-    })
+    if (sendingRef.current) {
+      const err = new Error('SEND_IN_FLIGHT')
+      err.code = 'SEND_IN_FLIGHT'
+      throw err
+    }
+    if (cooldown > 0) {
+      const err = new Error(`Please wait ${cooldown}s before requesting another code.`)
+      err.code = 'COOLDOWN'
+      err.retryAfterSec = cooldown
+      throw err
+    }
+
+    sendingRef.current = true
+    try {
+      const { data } = await axios.post(`${API}/auth/resend-otp`, {
+        email: form.email.trim().toLowerCase(),
+        password: form.password,
+        language: lang,
+      })
+      startCooldown(data?.cooldownSec || 60)
+      return data
+    } finally {
+      sendingRef.current = false
+    }
   }
 
   const enterVerifyStep = async ({ autoSend = true } = {}) => {
@@ -131,7 +165,15 @@ export default function LoginPage() {
       await sendVerificationCode()
       setInfo(t('login.verifyCodeSent'))
     } catch (err) {
-      setError(err.response?.data?.error || t('login.errorResend'))
+      if (err.code === 'SEND_IN_FLIGHT' || err.code === 'COOLDOWN') {
+        setInfo(t('login.verifyCodeSent'))
+      } else if (err.response?.status === 429) {
+        const wait = err.response?.data?.retryAfterSec || 60
+        startCooldown(wait)
+        setInfo(t('login.verifyCodeSent'))
+      } else {
+        setError(err.response?.data?.error || t('login.errorResend'))
+      }
     } finally {
       setLoading(false)
     }
@@ -140,7 +182,9 @@ export default function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!form.email.trim() || !form.password) return setError(t('login.errorRequired'))
+    if (submitLockRef.current || loading) return
 
+    submitLockRef.current = true
     setLoading(true)
     setError('')
     setInfo('')
@@ -162,16 +206,20 @@ export default function LoginPage() {
     } catch (err) {
       if (isUnverifiedError(err)) {
         setLoading(false)
+        submitLockRef.current = false
         await enterVerifyStep({ autoSend: true })
         return
       }
       setError(err.response?.data?.error || t('login.errorInvalid'))
     } finally {
       setLoading(false)
+      submitLockRef.current = false
     }
   }
 
   const handleResendOtp = async () => {
+    if (loading || sendingRef.current || cooldown > 0) return
+
     setLoading(true)
     setError('')
     setInfo('')
@@ -180,7 +228,13 @@ export default function LoginPage() {
       setOtp('')
       setInfo(t('login.verifyCodeSent'))
     } catch (err) {
-      if (err.response?.data?.alreadyVerified) {
+      if (err.code === 'SEND_IN_FLIGHT' || err.code === 'COOLDOWN') {
+        setInfo(t('login.verifyWait', { seconds: err.retryAfterSec || cooldown || 60 }))
+      } else if (err.response?.status === 429) {
+        const wait = err.response?.data?.retryAfterSec || 60
+        startCooldown(wait)
+        setInfo(t('login.verifyWait', { seconds: wait }))
+      } else if (err.response?.data?.alreadyVerified) {
         setError(t('login.alreadyVerified'))
         setStep('credentials')
       } else {
@@ -357,11 +411,15 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={handleResendOtp}
-                  disabled={loading}
-                  className="text-sm font-semibold hover:underline disabled:opacity-60 self-center"
+                  disabled={loading || cooldown > 0}
+                  className="text-sm font-semibold hover:underline disabled:opacity-60 disabled:no-underline self-center"
                   style={{ color: PRIMARY }}
                 >
-                  {loading ? t('login.verifyResending') : t('login.verifyResend')}
+                  {loading
+                    ? t('login.verifyResending')
+                    : cooldown > 0
+                      ? t('login.verifyWait', { seconds: cooldown })
+                      : t('login.verifyResend')}
                 </button>
 
                 <p className="text-xs text-gray-400 text-center">{t('login.verifyHint')}</p>
