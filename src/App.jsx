@@ -10,6 +10,7 @@ import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
+import LegalPage from './pages/LegalPage'
 import DashboardPage from './pages/DashboardPage'
 import AuthHashHandler from './components/AuthHashHandler'
 
@@ -65,6 +66,8 @@ function AnimatedRoutes() {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/privacy" element={<LegalPage type="privacy" />} />
+          <Route path="/terms" element={<LegalPage type="terms" />} />
         </Routes>
       </Motion.div>
     </AnimatePresence>

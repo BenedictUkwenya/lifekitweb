@@ -1105,7 +1105,7 @@ function Footer() {
               <ul className="space-y-3">
                 {[5, 6, 7, 8, 9].map(n => (
                   <li key={n}>
-                    <a href="#" className="text-sm text-gray-400 hover:text-gray-900 transition-colors">
+                    <a href={({ 8: '/privacy', 9: '/terms' })[n] ?? '#'} className="text-sm text-gray-400 hover:text-gray-900 transition-colors">
                       {t(`footer.link${n}`)}
                     </a>
                   </li>
