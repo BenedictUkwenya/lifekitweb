@@ -1,15 +1,21 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 
-// ── Fill these in before publishing ─────────────────────────────────────────
-// LEGAL_ENTITY: the registered company name (e.g. "LifeKit LLC"). Until set,
-// the documents refer to "LifeKit".
-// JURISDICTION: country whose law governs the Terms (e.g. "Georgia").
-// When null, the governing-law sentence is omitted.
-const LEGAL_ENTITY = 'LifeKit'
-const JURISDICTION = null
+// ── Company details (must match the Georgian business registry extract) ─────
+const LEGAL_ENTITY = 'Rosclan LLC'
+const COMPANY_ID = '400486755'
+const LEGAL_ADDRESS =
+  'Niko Ketskhoveli str. N16, entrance N1, floor 10, apt. N58, Gldani district, Tbilisi, Georgia'
+const JURISDICTION = 'Georgia'
 const CONTACT_EMAIL = 'hello@lifekithub.com'
-const LAST_UPDATED = 'October 21, 2026'
+const LAST_UPDATED = 'October 27, 2026'
+
+const company = (
+  <>
+    {LEGAL_ENTITY}, a limited liability company registered in {JURISDICTION} (identification code {COMPANY_ID}),
+    with its registered address at {LEGAL_ADDRESS}
+  </>
+)
 
 const mail = <a href={`mailto:${CONTACT_EMAIL}`} className="text-[#89273B] underline">{CONTACT_EMAIL}</a>
 
@@ -17,9 +23,10 @@ const PRIVACY = {
   title: 'Privacy Policy',
   intro: (
     <>
-      This policy explains what information {LEGAL_ENTITY} (“LifeKit”, “we”, “us”) collects when you use the
+      This policy explains what information {company} (“LifeKit”, “we”, “us”), collects when you use the
       LifeKit mobile app, website and related services (the “Service”), how we use it, and the choices you have.
-      We do not sell your personal information and we do not show third-party advertising.
+      {LEGAL_ENTITY} is the controller of your personal information. We do not sell your personal information and
+      we do not show third-party advertising.
     </>
   ),
   sections: [
@@ -98,7 +105,7 @@ const PRIVACY = {
         'Turn off location access and notifications in your device settings.',
         'Block or report other users from their posts or chats.',
       ],
-      after: 'Depending on where you live (for example the EU/EEA or UK), you may also have the right to lodge a complaint with your local data-protection authority.',
+      after: 'You may also lodge a complaint with the Personal Data Protection Service of Georgia or, depending on where you live (for example the EU/EEA or UK), with your local data-protection authority.',
     },
     {
       h: 'Security',
@@ -118,7 +125,7 @@ const PRIVACY = {
     },
     {
       h: 'Contact',
-      p: <>Questions or requests about privacy: {mail}.</>,
+      p: <>Questions or requests about privacy: {mail}, or by post to {LEGAL_ENTITY}, {LEGAL_ADDRESS}.</>,
     },
   ],
 }
@@ -128,7 +135,7 @@ const TERMS = {
   intro: (
     <>
       These Terms govern your use of the LifeKit mobile app, website and related services (the “Service”) operated by{' '}
-      {LEGAL_ENTITY} (“LifeKit”, “we”, “us”). By creating an account or using the Service you agree to these Terms
+      {company} (“LifeKit”, “we”, “us”). By creating an account or using the Service you agree to these Terms
       and to our <Link to="/privacy" className="text-[#89273B] underline">Privacy Policy</Link>. If you do not agree,
       do not use the Service.
     </>
@@ -216,13 +223,11 @@ const TERMS = {
     },
     {
       h: '15. General',
-      p: JURISDICTION
-        ? `These Terms are governed by the laws of ${JURISDICTION}, without regard to conflict-of-law rules. If any provision is found unenforceable, the rest remains in effect.`
-        : 'If any provision of these Terms is found unenforceable, the rest remains in effect. Our failure to enforce a provision is not a waiver.',
+      p: `These Terms are governed by the laws of ${JURISDICTION}, without regard to conflict-of-law rules, and disputes will be resolved by the courts of Tbilisi, ${JURISDICTION}. This does not take away any mandatory consumer protections you have under the laws of the country where you live. If any provision is found unenforceable, the rest remains in effect. Our failure to enforce a provision is not a waiver.`,
     },
     {
       h: '16. Contact',
-      p: <>Questions about these Terms: {mail}.</>,
+      p: <>Questions about these Terms: {mail}, or by post to {LEGAL_ENTITY}, {LEGAL_ADDRESS}.</>,
     },
   ],
 }
@@ -267,7 +272,7 @@ export default function LegalPage({ type }) {
       </main>
 
       <footer className="border-t border-gray-100 py-8 text-center text-sm text-gray-400">
-        © {new Date().getFullYear()} LifeKit · <a href={`mailto:${CONTACT_EMAIL}`} className="hover:text-gray-700">{CONTACT_EMAIL}</a>
+        © {new Date().getFullYear()} {LEGAL_ENTITY} · LifeKit · <a href={`mailto:${CONTACT_EMAIL}`} className="hover:text-gray-700">{CONTACT_EMAIL}</a>
       </footer>
     </div>
   )
