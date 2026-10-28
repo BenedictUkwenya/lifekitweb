@@ -9,7 +9,8 @@ import LanguageSwitcher from '../components/LanguageSwitcher'
 import { ContainerTextFlip } from '../components/ui/container-text-flip'
 import {
   ArrowRight, ArrowUp, Star, Users, Calendar,
-  Repeat2, Clock, Shield, Store, Sparkles, Menu, X
+  Repeat2, Clock, Shield, Store, Sparkles, Menu, X,
+  ChevronDown, Mail, Check, Smartphone
 } from 'lucide-react'
 
 gsap.registerPlugin(ScrollTrigger, useGSAP)
@@ -262,7 +263,7 @@ function Navbar() {
     { href: '#features',     label: t('nav.features')     },
     { href: '#process',      label: t('nav.process')      },
     { href: '#aiTools',      label: t('nav.aiTools')      },
-    { href: '#testimonials', label: t('nav.testimonials') },
+    { href: '#faq', label: t('nav.faq') },
   ]
 
   return (
@@ -505,7 +506,7 @@ function StatsBar() {
   const scope = useRef(null)
 
   const stats = [
-    { value: '0%',                 label: t('stats.commissionLabel') },
+    { value: '3%',                 label: t('stats.commissionLabel') },
     { value: '5',                  label: t('stats.aiFeaturesLabel') },
     { value: t('stats.timeValue'), label: t('stats.timeLabel')   },
     { value: t('stats.swapValue'), label: t('stats.swapLabel')   },
@@ -958,55 +959,151 @@ function AiToolsSection() {
 // ─────────────────────────────────────────────────────────────────────────────
 // Testimonials
 // ─────────────────────────────────────────────────────────────────────────────
-function TestimonialsSection() {
-  const { t } = useTranslation()
+const CONTACT_EMAIL = 'hello@lifekithub.com'
+const API_BASE = import.meta.env.VITE_API_URL
 
-  const items = [
-    { text: t('social.t1Text'), name: t('social.t1Name'), role: t('social.t1Role'), initials: 'SO' },
-    { text: t('social.t2Text'), name: t('social.t2Name'), role: t('social.t2Role'), initials: 'AK' },
-    { text: t('social.t3Text'), name: t('social.t3Name'), role: t('social.t3Role'), initials: 'MJ' },
-  ]
+function FaqSection() {
+  const { t } = useTranslation()
+  const [open, setOpen] = useState(0)
+  const items = [1, 2, 3, 4, 5, 6, 7].map(n => ({ q: t(`faq.q${n}`), a: t(`faq.a${n}`) }))
 
   return (
-    <section id="testimonials" className="py-24 px-5 sm:px-8">
-      <div className="max-w-7xl mx-auto">
-        <Fade className="mb-16">
+    <section id="faq" className="py-24 px-5 sm:px-8 bg-gray-50">
+      <div className="max-w-3xl mx-auto">
+        <Fade className="mb-12 text-center">
           <span className="block text-[10px] font-extrabold uppercase tracking-widest text-gray-400 mb-4">
-            {t('social.label')}
+            {t('faq.label')}
           </span>
-          <h2 className="text-4xl sm:text-5xl font-extrabold text-gray-900 leading-tight">
-            {t('social.title')}
-          </h2>
+          <h2 className="text-4xl sm:text-5xl font-extrabold text-gray-900 leading-tight">{t('faq.title')}</h2>
         </Fade>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {items.map((item, i) => (
-            <Fade key={item.name} delay={i * 100}>
-              <div className="bg-gray-50 rounded-3xl p-7 flex flex-col gap-5 hover:shadow-md transition-shadow h-full">
-                <div className="flex gap-0.5">
-                  {Array.from({ length: 5 }).map((_, j) => (
-                    <Star key={j} size={13} fill="#FBBF24" className="text-amber-400" />
+        <div className="space-y-3">
+          {items.map((item, i) => {
+            const isOpen = open === i
+            return (
+              <Fade key={item.q} delay={i * 60}>
+                <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setOpen(isOpen ? -1 : i)}
+                    aria-expanded={isOpen}
+                    className="w-full flex items-center justify-between gap-4 text-left px-6 py-5"
+                  >
+                    <span className="font-bold text-gray-900">{item.q}</span>
+                    <Motion.span animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.25 }}>
+                      <ChevronDown size={18} className="text-gray-400" />
+                    </Motion.span>
+                  </button>
+                  <AnimatePresence initial={false}>
+                    {isOpen && (
+                      <Motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                      >
+                        <p className="px-6 pb-6 text-[15px] text-gray-600 leading-relaxed">{item.a}</p>
+                      </Motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </Fade>
+            )
+          })}
+        </div>
+
+        <p className="mt-10 text-center text-gray-500">
+          {t('faq.more')}{' '}
+          <a href={`mailto:${CONTACT_EMAIL}`} className="font-semibold underline underline-offset-4" style={{ color: P }}>
+            {t('faq.contact')}
+          </a>
+        </p>
+      </div>
+    </section>
+  )
+}
+
+function WaitlistSection() {
+  const { t, i18n } = useTranslation()
+  const [email, setEmail] = useState('')
+  const [role, setRole] = useState('customer')
+  const [status, setStatus] = useState('idle') // idle | sending | done | error | invalid
+
+  const submit = async (e) => {
+    e.preventDefault()
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) {
+      setStatus('invalid')
+      return
+    }
+    setStatus('sending')
+    try {
+      const res = await fetch(`${API_BASE}/waitlist`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), role, lang: (i18n.language || 'en').slice(0, 2), source: 'landing' }),
+      })
+      setStatus(res.ok ? 'done' : res.status === 400 ? 'invalid' : 'error')
+    } catch {
+      setStatus('error')
+    }
+  }
+
+  return (
+    <section id="get-app" className="py-24 px-5 sm:px-8">
+      <div className="max-w-5xl mx-auto rounded-[2rem] px-6 sm:px-14 py-14 sm:py-16 relative overflow-hidden"
+        style={{ background: 'linear-gradient(135deg, #FDF2F4 0%, #F5F3FF 100%)' }}>
+        <div className="absolute -right-16 -top-16 w-64 h-64 rounded-full opacity-20" style={{ backgroundColor: P }} />
+        <Fade className="relative max-w-xl">
+          <span className="inline-flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-widest mb-4" style={{ color: P }}>
+            <Smartphone size={14} /> {t('waitlist.label')}
+          </span>
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 leading-tight mb-3">{t('waitlist.title')}</h2>
+          <p className="text-gray-600 mb-8">{t('waitlist.subtitle')}</p>
+
+          <AnimatePresence mode="wait">
+            {status === 'done' ? (
+              <Motion.div key="done" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-3 bg-white rounded-2xl px-5 py-4 shadow-sm">
+                <span className="w-9 h-9 rounded-full flex items-center justify-center text-white shrink-0" style={{ backgroundColor: '#10B981' }}>
+                  <Check size={18} />
+                </span>
+                <span className="font-semibold text-gray-800">{t('waitlist.success')}</span>
+              </Motion.div>
+            ) : (
+              <Motion.form key="form" onSubmit={submit} exit={{ opacity: 0, y: -10 }} noValidate>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {['customer', 'provider'].map(r => (
+                    <button key={r} type="button" onClick={() => setRole(r)}
+                      className={`px-4 py-2 rounded-full text-sm font-semibold border transition-all ${role === r ? 'text-white border-transparent' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}
+                      style={role === r ? { backgroundColor: P } : undefined}>
+                      {t(r === 'customer' ? 'waitlist.roleCustomer' : 'waitlist.roleProvider')}
+                    </button>
                   ))}
                 </div>
-                <p className="text-[15px] text-gray-700 leading-relaxed flex-1">
-                  "{item.text}"
-                </p>
-                <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
-                  <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-extrabold shrink-0"
-                    style={{ backgroundColor: P }}
-                  >
-                    {item.initials}
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-gray-900">{item.name}</p>
-                    <p className="text-xs text-gray-400">{item.role}</p>
-                  </div>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <label className="flex-1 flex items-center gap-3 bg-white rounded-xl px-4 border border-gray-200 focus-within:border-gray-400">
+                    <Mail size={18} className="text-gray-400 shrink-0" />
+                    <input type="email" required value={email} autoComplete="email"
+                      onChange={e => { setEmail(e.target.value); if (status !== 'sending') setStatus('idle') }}
+                      placeholder={t('waitlist.placeholder')}
+                      aria-label={t('waitlist.placeholder')}
+                      className="w-full py-4 outline-none bg-transparent text-gray-900" />
+                  </label>
+                  <button type="submit" disabled={status === 'sending'}
+                    className="inline-flex items-center justify-center gap-2 px-7 py-4 rounded-xl text-white font-semibold hover:opacity-90 hover:shadow-lg transition-all disabled:opacity-60"
+                    style={{ backgroundColor: P }}>
+                    {status === 'sending' ? '…' : t('waitlist.button')}
+                    <ArrowRight size={16} />
+                  </button>
                 </div>
-              </div>
-            </Fade>
-          ))}
-        </div>
+                {(status === 'error' || status === 'invalid') && (
+                  <p className="mt-3 text-sm text-red-600">{t(status === 'invalid' ? 'waitlist.invalid' : 'waitlist.error')}</p>
+                )}
+                <p className="mt-3 text-xs text-gray-500">{t('waitlist.privacy')}</p>
+              </Motion.form>
+            )}
+          </AnimatePresence>
+        </Fade>
       </div>
     </section>
   )
@@ -1091,7 +1188,7 @@ function Footer() {
               <ul className="space-y-3">
                 {[1, 2, 3, 4].map(n => (
                   <li key={n}>
-                    <a href="#" className="text-sm text-gray-400 hover:text-gray-900 transition-colors">
+                    <a href={({ 1: '/register', 2: '#features', 3: '#aiTools', 4: `mailto:${CONTACT_EMAIL}` })[n]} className="text-sm text-gray-400 hover:text-gray-900 transition-colors">
                       {t(`footer.link${n}`)}
                     </a>
                   </li>
@@ -1103,9 +1200,9 @@ function Footer() {
                 {t('footer.companyHeading')}
               </h4>
               <ul className="space-y-3">
-                {[5, 6, 7, 8, 9].map(n => (
+                {[5, 8, 9].map(n => (
                   <li key={n}>
-                    <a href={({ 8: '/privacy', 9: '/terms' })[n] ?? '#'} className="text-sm text-gray-400 hover:text-gray-900 transition-colors">
+                    <a href={({ 5: '#process', 8: '/privacy', 9: '/terms' })[n]} className="text-sm text-gray-400 hover:text-gray-900 transition-colors">
                       {t(`footer.link${n}`)}
                     </a>
                   </li>
@@ -1117,8 +1214,9 @@ function Footer() {
                 {t('footer.comingSoon')}
               </h4>
               <div className="space-y-3 text-sm text-gray-400">
-                <div className="flex items-center gap-2">📱 <span>iOS App</span></div>
-                <div className="flex items-center gap-2">🤖 <span>Android App</span></div>
+                <a href="#get-app" className="flex items-center gap-2 hover:text-gray-900 transition-colors">📱 <span>iOS App</span></a>
+                <a href="#get-app" className="flex items-center gap-2 hover:text-gray-900 transition-colors">🤖 <span>Android App</span></a>
+                <a href="#get-app" className="inline-block mt-1 text-sm font-semibold underline underline-offset-4" style={{ color: P }}>{t('footer.getApp')}</a>
               </div>
             </div>
           </div>
@@ -1126,8 +1224,9 @@ function Footer() {
 
         <div className="border-t border-gray-100 pt-8 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-xs text-gray-300">
-            © {new Date().getFullYear()} LifeKit · {t('footer.rights')}
+            © {new Date().getFullYear()} Rosclan LLC · LifeKit · {t('footer.rights')}
           </p>
+          <p className="text-xs text-gray-300">{t('footer.company')}</p>
           <p className="text-xs text-gray-300">{t('footer.builtWith')}</p>
         </div>
       </div>
@@ -1149,9 +1248,10 @@ export default function LandingPage() {
       <ScenariosSection />
       <BookingsSection />
       <AiToolsSection />
-      <TestimonialsSection />
+      <FaqSection />
+      <WaitlistSection />
       <FinalCta />
-      {/* <Footer /> */}
+      <Footer />
     </div>
   )
 }

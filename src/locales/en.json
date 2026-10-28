@@ -5,7 +5,8 @@
     "aiTools": "Smart Tools",
     "testimonials": "Testimonials",
     "signIn": "Sign In",
-    "joinAsProvider": "Join as Provider"
+    "joinAsProvider": "Join as Provider",
+    "faq": "FAQ"
   },
   "hero": {
     "titlePart1": "Your services,",
@@ -29,7 +30,7 @@
     "mockupNearby": "2 people near you · tap to view"
   },
   "stats": {
-    "commissionLabel": "Founding provider commission",
+    "commissionLabel": "Commission for your first 90 days",
     "aiFeaturesLabel": "Smart features",
     "timeLabel": "Time to first listing",
     "swapLabel": "Skill Swap possibilities",
@@ -121,9 +122,9 @@
     "badge": "Start Today",
     "title1": "Start building your",
     "title2": "life anywhere.",
-    "subtitle": "Join thousands of people using LifeKit to settle in, earn, and connect wherever they land next.",
+    "subtitle": "Join LifeKit as one of our first providers — list your services in minutes and start getting booked.",
     "ctaPrimary": "Get Early Access",
-    "note": "Free to join · No card required · Ships globally"
+    "note": "Free to join · No card required · Available worldwide"
   },
   "footer": {
     "tagline": "A service ecosystem where skilled providers can earn, swap, and grow together.",
@@ -133,14 +134,16 @@
     "link1": "Become a Provider",
     "link2": "Skill Swap",
     "link3": "Smart Tools",
-    "link4": "Help Center",
-    "link5": "About Us",
+    "link4": "Help & Contact",
+    "link5": "How It Works",
     "link6": "Blog",
     "link7": "Careers",
     "link8": "Privacy Policy",
     "link9": "Terms of Service",
     "rights": "All rights reserved.",
-    "builtWith": "Built with care for every skilled professional."
+    "builtWith": "Built with care for every skilled professional.",
+    "getApp": "Get the app",
+    "company": "LifeKit is operated by Rosclan LLC, Tbilisi, Georgia."
   },
   "login": {
     "pageTitle": "Sign in to your account",
@@ -348,7 +351,6 @@
     "spotlightDemand": "Your skills are in demand! {{count}} incoming proposals.",
     "spotlightEmpty": "Enable skill swap on your services to start trading skills with others.",
     "viewSwapProposals": "View Swap Proposals",
-    "recentActivity": "Recent Activity",
     "noActivity": "No activity yet. Your bookings and swaps will show up here.",
     "bookingsCount": "{{count}} bookings total",
     "bookingsEmptyTitle": "No bookings yet",
@@ -432,5 +434,38 @@
     "en": "EN",
     "ka": "KA",
     "ru": "RU"
+  },
+  "faq": {
+    "label": "Questions",
+    "title": "Everything you need to know.",
+    "q1": "What is LifeKit?",
+    "a1": "LifeKit is a marketplace and community where you can book trusted local services, offer your own skills, swap skills with others and join communities — with Gracia, our AI assistant, to help along the way.",
+    "q2": "How much does it cost?",
+    "a2": "Joining is free. Providers pay a small commission only on completed paid bookings: 3% during your first 90 days, then 8%. Optional paid plans unlock extra tools.",
+    "q3": "How do providers get paid?",
+    "a3": "Clients pay into a secure LifeKit wallet. The money is held until the job is completed and confirmed, then released to you. You can withdraw your earnings through Stripe.",
+    "q4": "What is Skill Swap?",
+    "a4": "Skill Swap lets you trade services without money — for example, photography sessions for accounting help. Both sides agree on what they’ll deliver.",
+    "q5": "Is my money safe?",
+    "a5": "Card payments are processed by Stripe, and we never see your full card number. Payments are held until both sides confirm, and if something goes wrong you can open a dispute for our team to review.",
+    "q6": "When can I download the app?",
+    "a6": "The LifeKit app for iPhone and Android is coming soon. Providers can sign up on this website today — join the waitlist below to be told the moment the app is live.",
+    "q7": "Which languages does LifeKit support?",
+    "a7": "English, Georgian and Russian, with more on the way.",
+    "more": "Still have a question?",
+    "contact": "Email us"
+  },
+  "waitlist": {
+    "label": "Coming soon",
+    "title": "The LifeKit app is almost here.",
+    "subtitle": "Be the first to know when LifeKit launches on iPhone and Android.",
+    "placeholder": "Your email address",
+    "roleCustomer": "I want to book services",
+    "roleProvider": "I want to offer services",
+    "button": "Notify me",
+    "success": "You're on the list! We'll email you when the app launches.",
+    "error": "Something went wrong. Please try again.",
+    "invalid": "Please enter a valid email address.",
+    "privacy": "We'll only use your email to tell you about the launch. Unsubscribe anytime."
   }
 }
