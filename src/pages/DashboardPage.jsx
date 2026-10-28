@@ -23,21 +23,6 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-function relativeTime(dateStr) {
-  if (!dateStr) return ''
-  const now = Date.now()
-  const then = new Date(dateStr).getTime()
-  const diff = Math.max(0, now - then)
-  const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'just now'
-  if (mins < 60) return `${mins}m ago`
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}h ago`
-  const days = Math.floor(hrs / 24)
-  if (days < 30) return `${days}d ago`
-  return new Date(dateStr).toLocaleDateString()
-}
-
 function Toast({ toasts }) {
   return (
     <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2 pointer-events-none">
@@ -75,9 +60,7 @@ function Sidebar({ activeTab, setActiveTab, mobileOpen, setMobileOpen }) {
   const sidebarContent = (
     <>
       <Link to="/" className="flex items-center gap-2.5 px-6 h-16 border-b border-gray-100">
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: PRIMARY }}>
-          <Sparkles size={15} color="#fff" />
-        </div>
+        <img src="/logo2.png" alt="" className="w-8 h-8 object-contain" />
         <span className="font-bold text-gray-900 text-base tracking-tight">LifeKit</span>
       </Link>
 
@@ -755,8 +738,9 @@ function CreateServiceWizard({ onClose, onSuccess, addToast }) {
   )
 }
 
-function ServiceCard({ service }) {
-  const { t } = useTranslation()
+function ServiceCard({ service, onDelete }) {
+  const { t, i18n } = useTranslation()
+  const [deleting, setDeleting] = useState(false)
 
   const statusMeta = (status) => {
     switch ((status || '').toLowerCase()) {
@@ -769,7 +753,7 @@ function ServiceCard({ service }) {
   }
 
   const { label, bg, text } = statusMeta(service.status)
-  const categoryName = service.service_categories?.name || '—'
+  const categoryName = service.service_categories?.name_translations?.[i18n.language] || service.service_categories?.name || '—'
   const thumb = service.image_urls?.[0]
 
   return (
@@ -785,6 +769,22 @@ function ServiceCard({ service }) {
         <span className={`absolute top-2.5 right-2.5 text-xs font-semibold px-2.5 py-1 rounded-full ${bg} ${text}`}>
           {label}
         </span>
+        {onDelete && (
+          <button
+            onClick={async () => {
+              if (!window.confirm(t('dashboard.confirmDeleteService'))) return
+              setDeleting(true)
+              const ok = await onDelete(service)
+              if (!ok) setDeleting(false)
+            }}
+            disabled={deleting}
+            aria-label={t('dashboard.deleteService')}
+            title={t('dashboard.deleteService')}
+            className="absolute top-2.5 left-2.5 w-8 h-8 rounded-full bg-white/90 text-gray-500 hover:text-red-600 flex items-center justify-center shadow-sm opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity disabled:opacity-100"
+          >
+            {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+          </button>
+        )}
       </div>
 
       <div className="p-4">
@@ -796,7 +796,7 @@ function ServiceCard({ service }) {
           </span>
           <div className="flex items-center gap-1.5 text-gray-400">
             <Clock size={12} />
-            <span className="text-xs">{new Date(service.created_at).toLocaleDateString()}</span>
+            <span className="text-xs">{new Date(service.created_at).toLocaleDateString(i18n.language)}</span>
           </div>
         </div>
       </div>
@@ -825,37 +825,110 @@ function EmptyState({ onCreateClick }) {
   )
 }
 
-function OverviewTab({ services, bookings, incomingSwaps, outgoingSwaps, loading, setActiveTab }) {
+function useRelativeTime() {
+  const { i18n } = useTranslation()
+  return useCallback((dateStr) => {
+    if (!dateStr) return ''
+    const diffSec = Math.round((new Date(dateStr).getTime() - Date.now()) / 1000)
+    const rtf = new Intl.RelativeTimeFormat(i18n.language || 'en', { numeric: 'auto' })
+    const abs = Math.abs(diffSec)
+    if (abs < 60) return rtf.format(0, 'second')
+    if (abs < 3600) return rtf.format(Math.round(diffSec / 60), 'minute')
+    if (abs < 86400) return rtf.format(Math.round(diffSec / 3600), 'hour')
+    if (abs < 86400 * 30) return rtf.format(Math.round(diffSec / 86400), 'day')
+    return new Date(dateStr).toLocaleDateString(i18n.language)
+  }, [i18n.language])
+}
+
+function useStatusMaps() {
   const { t } = useTranslation()
-  const user = useMemo(() => {
-    try { return JSON.parse(localStorage.getItem('provider_user') || '{}') } catch { return {} }
-  }, [])
-  const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || t('dashboard.provider')
+  return useMemo(() => ({
+    booking: {
+      pending:   { label: t('dashboard.statusPending'),   bg: 'bg-yellow-100', text: 'text-yellow-700' },
+      confirmed: { label: t('dashboard.statusConfirmed'), bg: 'bg-blue-100',   text: 'text-blue-700' },
+      completed: { label: t('dashboard.statusCompleted'), bg: 'bg-green-100',  text: 'text-green-700' },
+      cancelled: { label: t('dashboard.statusCancelled'), bg: 'bg-red-100',    text: 'text-red-600' },
+      disputed:  { label: t('dashboard.statusDisputed'),  bg: 'bg-orange-100', text: 'text-orange-700' },
+      overdue:   { label: t('dashboard.statusOverdue'),   bg: 'bg-red-100',    text: 'text-red-700' },
+    },
+    swap: {
+      pending:   { label: t('dashboard.statusPending'),   bg: 'bg-yellow-100', text: 'text-yellow-700' },
+      accepted:  { label: t('dashboard.statusAccepted'),  bg: 'bg-green-100',  text: 'text-green-700' },
+      declined:  { label: t('dashboard.statusDeclined'),  bg: 'bg-red-100',    text: 'text-red-600' },
+      cancelled: { label: t('dashboard.statusCancelled'), bg: 'bg-gray-100',   text: 'text-gray-600' },
+      completed: { label: t('dashboard.statusCompleted'), bg: 'bg-green-100',  text: 'text-green-700' },
+    },
+  }), [t])
+}
+
+const bookingStatus = (b) => (b.is_overdue ? 'overdue' : (b.status || '').toLowerCase())
+const money = (n) => `$${Number(n || 0).toFixed(2)}`
+
+function Avatar({ name, src, size = 40 }) {
+  const initial = (name || '?').trim().charAt(0).toUpperCase() || '?'
+  return src ? (
+    <img src={src} alt="" className="rounded-xl object-cover flex-shrink-0" style={{ width: size, height: size }} />
+  ) : (
+    <div className="rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-white"
+      style={{ width: size, height: size, backgroundColor: PRIMARY, fontSize: size * 0.4 }}>
+      {initial}
+    </div>
+  )
+}
+
+function ActionButton({ onClick, busy, variant = 'primary', children }) {
+  const cls = variant === 'primary'
+    ? 'text-white hover:opacity-90'
+    : variant === 'danger'
+      ? 'bg-white text-red-600 border border-red-200 hover:bg-red-50'
+      : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
+  return (
+    <button onClick={onClick} disabled={busy}
+      className={`inline-flex items-center gap-1.5 text-xs font-bold px-3.5 py-2 rounded-xl transition-all active:scale-[0.97] disabled:opacity-50 ${cls}`}
+      style={variant === 'primary' ? { backgroundColor: PRIMARY } : undefined}>
+      {busy && <Loader2 size={13} className="animate-spin" />}
+      {children}
+    </button>
+  )
+}
+
+function OverviewTab({ profile, wallet, services, bookings, incomingSwaps, outgoingSwaps, loading, setActiveTab }) {
+  const { t } = useTranslation()
+  const maps = useStatusMaps()
+  const ago = useRelativeTime()
+  const displayName = profile?.full_name || t('dashboard.provider')
 
   const activeCount = services.filter(s => (s.status || '').toLowerCase() === 'active').length
-  const totalBookings = bookings.length
-  const completedSwaps = [...incomingSwaps, ...outgoingSwaps].filter(
-    s => (s.status || '').toLowerCase() === 'accepted' || (s.status || '').toLowerCase() === 'completed'
-  ).length
-  const pendingRequests =
-    incomingSwaps.filter(s => (s.status || '').toLowerCase() === 'pending').length +
-    bookings.filter(b => (b.status || '').toLowerCase() === 'pending').length
-
+  const completedJobs = bookings.filter(b => (b.status || '').toLowerCase() === 'completed').length
+  const pendingBookings = bookings.filter(b => (b.status || '').toLowerCase() === 'pending').length
   const pendingIncoming = incomingSwaps.filter(s => (s.status || '').toLowerCase() === 'pending').length
+  const needsAction = pendingBookings + pendingIncoming
 
   const recentActivity = useMemo(() => {
     const items = []
     bookings.forEach(b => items.push({
       type: 'booking',
-      title: b.service?.title || b.service_title || t('dashboard.booking'),
-      date: b.created_at || b.booking_date,
-      status: b.status,
+      title: b.services?.title || t('dashboard.untitledService'),
+      who: b.profiles?.full_name,
+      date: b.created_at,
+      status: bookingStatus(b),
+      map: 'booking',
     }))
-    ;[...incomingSwaps, ...outgoingSwaps].forEach(s => items.push({
+    incomingSwaps.forEach(s => items.push({
       type: 'swap',
-      title: s.offered_service?.title || s.service?.title || t('dashboard.skillSwap'),
+      title: s.proposer_service?.title || t('dashboard.skillSwap'),
+      who: s.proposer?.full_name,
       date: s.created_at,
-      status: s.status,
+      status: (s.status || '').toLowerCase(),
+      map: 'swap',
+    }))
+    outgoingSwaps.forEach(s => items.push({
+      type: 'swap',
+      title: s.target_service?.title || t('dashboard.skillSwap'),
+      who: s.target_user?.full_name,
+      date: s.created_at,
+      status: (s.status || '').toLowerCase(),
+      map: 'swap',
     }))
     items.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))
     return items.slice(0, 8)
@@ -864,13 +937,12 @@ function OverviewTab({ services, bookings, incomingSwaps, outgoingSwaps, loading
   if (loading) {
     return (
       <div className="flex flex-col gap-6">
-        <div className="animate-pulse rounded-2xl bg-gray-100 h-28" />
+        <div className="animate-pulse rounded-2xl bg-gray-100 h-36" />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="animate-pulse bg-white rounded-2xl border border-gray-100 p-5 h-24" />
           ))}
         </div>
-        <div className="animate-pulse rounded-2xl bg-gray-100 h-36" />
         <div className="animate-pulse bg-white rounded-2xl border border-gray-100 p-5 h-48" />
       </div>
     )
@@ -878,74 +950,68 @@ function OverviewTab({ services, bookings, incomingSwaps, outgoingSwaps, loading
 
   return (
     <div className="flex flex-col gap-6">
-      <div
-        className="rounded-2xl p-6 md:p-8"
-        style={{ background: `linear-gradient(135deg, ${PRIMARY}0D 0%, ${PRIMARY}05 100%)` }}
-      >
-        <h1 className="text-xl md:text-2xl font-extrabold text-gray-900">
-          {t('dashboard.welcomeBack', { name: displayName })}
-        </h1>
-        <p className="text-sm text-gray-600 mt-1.5 max-w-lg leading-relaxed">
-          {t('dashboard.welcomeSubtitle')}
-        </p>
+      {/* Welcome + wallet */}
+      <div className="grid lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2 rounded-2xl p-6 md:p-8 relative overflow-hidden"
+          style={{ background: `linear-gradient(135deg, ${PRIMARY}14 0%, ${PRIMARY}05 100%)` }}>
+          <h1 className="text-xl md:text-2xl font-extrabold text-gray-900">
+            {t('dashboard.welcomeBack', { name: displayName })}
+          </h1>
+          <p className="text-sm text-gray-600 mt-1.5 max-w-lg leading-relaxed">
+            {needsAction > 0
+              ? t('dashboard.needsAction', { count: needsAction })
+              : t('dashboard.welcomeSubtitleHonest')}
+          </p>
+          <div className="flex flex-wrap gap-2 mt-5">
+            {needsAction > 0 && (
+              <button onClick={() => setActiveTab(pendingBookings > 0 ? 'bookings' : 'swaps')}
+                className="inline-flex items-center gap-2 text-white text-sm font-bold px-4 py-2.5 rounded-xl hover:opacity-90 transition-all"
+                style={{ backgroundColor: PRIMARY }}>
+                {t('dashboard.reviewRequests')} <ChevronRight size={15} />
+              </button>
+            )}
+            <button onClick={() => setActiveTab('services')}
+              className="inline-flex items-center gap-2 bg-white text-sm font-bold px-4 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 transition-all text-gray-800">
+              <PlusCircle size={15} /> {t('dashboard.newService')}
+            </button>
+          </div>
+        </div>
+
+        <div className="rounded-2xl p-6 text-white relative overflow-hidden flex flex-col justify-between"
+          style={{ background: `linear-gradient(135deg, ${PRIMARY} 0%, #5B1A28 100%)` }}>
+          <div className="absolute -right-10 -top-10 w-36 h-36 rounded-full bg-white/10" />
+          <div className="relative">
+            <p className="text-xs font-bold uppercase tracking-wider text-white/70 flex items-center gap-2">
+              <DollarSign size={14} /> {t('dashboard.walletBalance')}
+            </p>
+            <p className="text-3xl font-extrabold mt-2">{wallet ? money(wallet.balance) : '—'}</p>
+          </div>
+          <p className="relative text-xs text-white/70 mt-4 leading-relaxed">{t('dashboard.walletHint')}</p>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          icon={<Briefcase size={20} style={{ color: PRIMARY }} />}
-          label={t('dashboard.activeServices')}
-          value={activeCount}
-          tint={`${PRIMARY}12`}
-        />
-        <StatCard
-          icon={<Calendar size={20} className="text-blue-600" />}
-          label={t('dashboard.totalBookings')}
-          value={totalBookings}
-          tint="#EFF6FF"
-        />
-        <StatCard
-          icon={<ArrowLeftRight size={20} className="text-emerald-600" />}
-          label={t('dashboard.skillSwapsCompleted')}
-          value={completedSwaps}
-          tint="#ECFDF5"
-        />
-        <StatCard
-          icon={<Clock size={20} className="text-amber-600" />}
-          label={t('dashboard.pendingRequests')}
-          value={pendingRequests}
-          tint="#FFFBEB"
-        />
+        <StatCard icon={<Briefcase size={20} style={{ color: PRIMARY }} />} label={t('dashboard.activeServices')} value={activeCount} tint={`${PRIMARY}12`} />
+        <StatCard icon={<Calendar size={20} className="text-blue-600" />} label={t('dashboard.totalBookings')} value={bookings.length} tint="#EFF6FF" />
+        <StatCard icon={<CheckCircle2 size={20} className="text-emerald-600" />} label={t('dashboard.completedJobs')} value={completedJobs} tint="#ECFDF5" />
+        <StatCard icon={<Clock size={20} className="text-amber-600" />} label={t('dashboard.pendingRequests')} value={needsAction} tint="#FFFBEB" />
       </div>
 
-      <div
-        className="rounded-2xl p-6 md:p-8 text-white relative overflow-hidden"
-        style={{ background: `linear-gradient(135deg, ${PRIMARY} 0%, #6B1D2E 100%)` }}
-      >
-        <div className="absolute top-0 right-0 w-48 h-48 rounded-full opacity-10 -translate-y-1/2 translate-x-1/4" style={{ backgroundColor: '#fff' }} />
+      <div className="rounded-2xl p-6 md:p-8 text-white relative overflow-hidden"
+        style={{ background: `linear-gradient(135deg, #1F2937 0%, #111827 100%)` }}>
+        <div className="absolute top-0 right-0 w-48 h-48 rounded-full opacity-10 -translate-y-1/2 translate-x-1/4 bg-white" />
         <div className="relative z-10">
           <div className="flex items-center gap-2 mb-2">
-            <ArrowLeftRight size={22} />
+            <ArrowLeftRight size={20} />
             <span className="text-xs font-bold uppercase tracking-wider opacity-80">{t('dashboard.spotlightLabel')}</span>
           </div>
-          <h2 className="text-lg md:text-xl font-extrabold mb-1">
-            {t('dashboard.spotlightHeading')}
-          </h2>
-          {pendingIncoming > 0 ? (
-            <p className="text-sm opacity-90 mb-4">
-              {t('dashboard.spotlightDemand', { count: pendingIncoming })}
-            </p>
-          ) : (
-            <p className="text-sm opacity-90 mb-4">
-              {t('dashboard.spotlightEmpty')}
-            </p>
-          )}
-          <button
-            onClick={() => setActiveTab('swaps')}
-            className="inline-flex items-center gap-2 bg-white text-sm font-bold px-5 py-2.5 rounded-xl hover:opacity-90 active:scale-[0.98] transition-all"
-            style={{ color: PRIMARY }}
-          >
-            {t('dashboard.viewSwapProposals')}
-            <ChevronRight size={15} />
+          <h2 className="text-lg md:text-xl font-extrabold mb-1">{t('dashboard.spotlightHeading')}</h2>
+          <p className="text-sm opacity-90 mb-4">
+            {pendingIncoming > 0 ? t('dashboard.spotlightDemand', { count: pendingIncoming }) : t('dashboard.spotlightEmpty')}
+          </p>
+          <button onClick={() => setActiveTab('swaps')}
+            className="inline-flex items-center gap-2 bg-white text-gray-900 text-sm font-bold px-5 py-2.5 rounded-xl hover:opacity-90 active:scale-[0.98] transition-all">
+            {t('dashboard.viewSwapProposals')} <ChevronRight size={15} />
           </button>
         </div>
       </div>
@@ -963,20 +1029,18 @@ function OverviewTab({ services, bookings, incomingSwaps, outgoingSwaps, loading
           <div className="divide-y divide-gray-50">
             {recentActivity.map((item, idx) => (
               <div key={idx} className="flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50/50 transition-colors">
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                  item.type === 'booking' ? 'bg-blue-50' : 'bg-emerald-50'
-                }`}>
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${item.type === 'booking' ? 'bg-blue-50' : 'bg-emerald-50'}`}>
                   {item.type === 'booking'
                     ? <Calendar size={16} className="text-blue-600" />
                     : <ArrowLeftRight size={16} className="text-emerald-600" />}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 truncate">{item.title}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{relativeTime(item.date)}</p>
+                  <p className="text-xs text-gray-400 mt-0.5 truncate">
+                    {[item.who, ago(item.date)].filter(Boolean).join(' · ')}
+                  </p>
                 </div>
-                {item.status && (
-                  <span className="text-xs font-medium text-gray-500 capitalize">{item.status}</span>
-                )}
+                {item.status && <StatusBadge status={item.status} map={maps[item.map]} />}
               </div>
             ))}
           </div>
@@ -986,227 +1050,296 @@ function OverviewTab({ services, bookings, incomingSwaps, outgoingSwaps, loading
   )
 }
 
-function BookingsTab({ bookings, loading }) {
-  const { t } = useTranslation()
+function BookingsTab({ bookings, loading, onAction }) {
+  const { t, i18n } = useTranslation()
+  const maps = useStatusMaps()
+  const [filter, setFilter] = useState('all')
+  const [busyId, setBusyId] = useState(null)
 
-  const statusMap = {
-    pending:   { label: t('dashboard.statusPending'),   bg: 'bg-yellow-100', text: 'text-yellow-700' },
-    confirmed: { label: t('dashboard.statusConfirmed'), bg: 'bg-blue-100',   text: 'text-blue-700' },
-    completed: { label: t('dashboard.statusCompleted'), bg: 'bg-green-100',  text: 'text-green-700' },
-    cancelled: { label: t('dashboard.statusCancelled'), bg: 'bg-red-100',    text: 'text-red-600' },
-    disputed:  { label: t('dashboard.statusDisputed'),  bg: 'bg-orange-100', text: 'text-orange-700' },
+  const filtered = bookings.filter((b) => {
+    const s = bookingStatus(b)
+    if (filter === 'action') return s === 'pending'
+    if (filter === 'upcoming') return s === 'confirmed'
+    if (filter === 'past') return ['completed', 'cancelled', 'disputed', 'overdue'].includes(s)
+    return true
+  })
+
+  const act = async (b, status) => {
+    if (status === 'cancelled' && !window.confirm(t('dashboard.confirmDeclineBooking'))) return
+    setBusyId(b.id)
+    await onAction(b, status)
+    setBusyId(null)
   }
 
   if (loading) {
-    return (
-      <div className="flex flex-col gap-3">
-        {[...Array(4)].map((_, i) => <SkeletonRow key={i} />)}
-      </div>
-    )
+    return <div className="flex flex-col gap-3">{[...Array(4)].map((_, i) => <SkeletonRow key={i} />)}</div>
   }
+
+  const tabs = [
+    ['all', t('dashboard.filterAll')],
+    ['action', t('dashboard.filterAction')],
+    ['upcoming', t('dashboard.filterUpcoming')],
+    ['past', t('dashboard.filterPast')],
+  ]
 
   return (
     <div>
-      <div className="mb-6">
+      <div className="mb-5">
         <h1 className="text-xl font-extrabold text-gray-900">{t('dashboard.bookings')}</h1>
-        <p className="text-sm text-gray-500 mt-0.5">
-          {t('dashboard.bookingsCount', { count: bookings.length })}
-        </p>
+        <p className="text-sm text-gray-500 mt-0.5">{t('dashboard.bookingsCount', { count: bookings.length })}</p>
       </div>
 
-      {bookings.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-center px-4">
-          <div className="w-20 h-20 rounded-3xl bg-blue-50 flex items-center justify-center mb-6">
-            <Calendar size={32} className="text-blue-400" />
+      <div className="flex gap-2 mb-5 overflow-x-auto pb-1">
+        {tabs.map(([id, label]) => (
+          <button key={id} onClick={() => setFilter(id)}
+            className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all ${filter === id ? 'text-white' : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'}`}
+            style={filter === id ? { backgroundColor: PRIMARY } : undefined}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center px-4 bg-white rounded-2xl border border-gray-100">
+          <div className="w-16 h-16 rounded-3xl bg-blue-50 flex items-center justify-center mb-5">
+            <Calendar size={28} className="text-blue-400" />
           </div>
-          <h3 className="text-xl font-bold text-gray-900 mb-2">{t('dashboard.bookingsEmptyTitle')}</h3>
+          <h3 className="text-lg font-bold text-gray-900 mb-1">{t('dashboard.bookingsEmptyTitle')}</h3>
           <p className="text-gray-500 text-sm max-w-sm leading-relaxed">{t('dashboard.bookingsEmptySubtitle')}</p>
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {bookings.map((booking, idx) => (
-            <div key={booking.id || idx} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 md:p-5 hover:shadow-md transition-shadow">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-start gap-4 min-w-0 flex-1">
-                  <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
-                    <Calendar size={18} className="text-blue-600" />
-                  </div>
+          {filtered.map((b) => {
+            const s = bookingStatus(b)
+            const when = b.scheduled_time ? new Date(b.scheduled_time) : null
+            return (
+              <div key={b.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 md:p-5 hover:shadow-md transition-shadow">
+                <div className="flex items-start gap-4">
+                  <Avatar name={b.profiles?.full_name} src={b.profiles?.profile_picture_url} />
                   <div className="min-w-0 flex-1">
-                    <h4 className="text-sm font-bold text-gray-900 truncate">
-                      {booking.service?.title || booking.service_title || t('dashboard.untitledService')}
-                    </h4>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      {booking.client?.full_name || booking.client_name || t('dashboard.unknownClient')}
-                    </p>
-                    <div className="flex items-center gap-3 mt-2 flex-wrap">
-                      {booking.booking_date && (
-                        <span className="text-xs text-gray-400 flex items-center gap-1">
-                          <Clock size={11} />
-                          {new Date(booking.booking_date).toLocaleDateString()}
-                        </span>
-                      )}
-                      {booking.price != null && (
-                        <span className="text-xs font-bold" style={{ color: PRIMARY }}>
-                          ${Number(booking.price).toFixed(2)}
-                        </span>
-                      )}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h4 className="text-sm font-bold text-gray-900 truncate">{b.services?.title || t('dashboard.untitledService')}</h4>
+                        <p className="text-xs text-gray-500 mt-0.5 truncate">{b.profiles?.full_name || t('dashboard.unknownClient')}</p>
+                      </div>
+                      <StatusBadge status={s} map={maps.booking} />
                     </div>
+                    <div className="flex items-center gap-4 mt-2.5 flex-wrap text-xs">
+                      {when && (
+                        <span className="text-gray-500 flex items-center gap-1">
+                          <Clock size={12} />
+                          {when.toLocaleString(i18n.language, { dateStyle: 'medium', timeStyle: 'short' })}
+                        </span>
+                      )}
+                      <span className="font-bold" style={{ color: PRIMARY }}>
+                        {Number(b.total_price) > 0 ? money(b.total_price) : t('dashboard.skillSwap')}
+                      </span>
+                    </div>
+                    {s === 'pending' && (
+                      <div className="flex gap-2 mt-4">
+                        <ActionButton busy={busyId === b.id} onClick={() => act(b, 'confirmed')}>
+                          <CheckCircle2 size={13} /> {t('dashboard.accept')}
+                        </ActionButton>
+                        <ActionButton variant="danger" busy={busyId === b.id} onClick={() => act(b, 'cancelled')}>
+                          <X size={13} /> {t('dashboard.decline')}
+                        </ActionButton>
+                      </div>
+                    )}
                   </div>
                 </div>
-                <StatusBadge status={booking.status} map={statusMap} />
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>
   )
 }
 
-function SkillSwapsTab({ incomingSwaps, outgoingSwaps, loading }) {
+function SkillSwapsTab({ incomingSwaps, outgoingSwaps, loading, onAction }) {
   const { t } = useTranslation()
+  const maps = useStatusMaps()
+  const ago = useRelativeTime()
+  const [busyId, setBusyId] = useState(null)
 
-  const swapStatusMap = {
-    pending:  { label: t('dashboard.statusPending'),  bg: 'bg-yellow-100', text: 'text-yellow-700' },
-    accepted: { label: t('dashboard.statusAccepted'), bg: 'bg-green-100',  text: 'text-green-700' },
-    declined: { label: t('dashboard.statusDeclined'), bg: 'bg-red-100',    text: 'text-red-600' },
+  const act = async (swap, action) => {
+    const confirmKey = { decline: 'confirmDeclineSwap', cancel: 'confirmCancelSwap' }[action]
+    if (confirmKey && !window.confirm(t(`dashboard.${confirmKey}`))) return
+    setBusyId(swap.id)
+    await onAction(swap, action)
+    setBusyId(null)
   }
 
   if (loading) {
+    return <div className="flex flex-col gap-3">{[...Array(3)].map((_, i) => <SkeletonRow key={i} />)}</div>
+  }
+
+  const renderCard = (swap, incoming) => {
+    const person = incoming ? swap.proposer : swap.target_user
+    const theyOffer = incoming ? swap.proposer_service : swap.target_service
+    const youGive = incoming ? swap.target_service : swap.proposer_service
+    const status = (swap.status || '').toLowerCase()
     return (
-      <div className="flex flex-col gap-6">
-        <div className="flex flex-col gap-3">
-          {[...Array(3)].map((_, i) => <SkeletonRow key={i} />)}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 md:p-5 hover:shadow-md transition-shadow">
+        <div className="flex items-start gap-4">
+          <Avatar name={person?.full_name} src={person?.profile_picture_url} />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h4 className="text-sm font-bold text-gray-900 truncate">{person?.full_name || t('dashboard.unknownUser')}</h4>
+                {swap.created_at && <p className="text-xs text-gray-400 mt-0.5">{ago(swap.created_at)}</p>}
+              </div>
+              <StatusBadge status={status} map={maps.swap} />
+            </div>
+            <div className="mt-3 grid sm:grid-cols-2 gap-2">
+              <div className="rounded-xl bg-emerald-50 px-3 py-2">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">{t('dashboard.youGet')}</p>
+                <p className="text-sm font-semibold text-gray-900 truncate">{theyOffer?.title || '—'}</p>
+              </div>
+              <div className="rounded-xl bg-gray-50 px-3 py-2">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">{t('dashboard.youGive')}</p>
+                <p className="text-sm font-semibold text-gray-900 truncate">{youGive?.title || '—'}</p>
+              </div>
+            </div>
+            {swap.notes && <p className="text-xs text-gray-500 mt-3 italic line-clamp-2">“{swap.notes}”</p>}
+            {status === 'pending' && (
+              <div className="flex gap-2 mt-4">
+                {incoming ? (
+                  <>
+                    <ActionButton busy={busyId === swap.id} onClick={() => act(swap, 'accept')}>
+                      <CheckCircle2 size={13} /> {t('dashboard.accept')}
+                    </ActionButton>
+                    <ActionButton variant="danger" busy={busyId === swap.id} onClick={() => act(swap, 'decline')}>
+                      <X size={13} /> {t('dashboard.decline')}
+                    </ActionButton>
+                  </>
+                ) : (
+                  <ActionButton variant="secondary" busy={busyId === swap.id} onClick={() => act(swap, 'cancel')}>
+                    <X size={13} /> {t('dashboard.cancelProposal')}
+                  </ActionButton>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     )
   }
 
-  const SwapList = ({ swaps, emptyMsg, isIncoming }) => (
-    swaps.length === 0 ? (
-      <div className="py-10 text-center">
-        <ArrowLeftRight size={24} className="mx-auto text-gray-300 mb-2" />
-        <p className="text-sm text-gray-400">{emptyMsg}</p>
-      </div>
-    ) : (
-      <div className="flex flex-col gap-3">
-        {swaps.map((swap, idx) => (
-          <div key={swap.id || idx} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 md:p-5 hover:shadow-md transition-shadow">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-start gap-4 min-w-0 flex-1">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${PRIMARY}12` }}>
-                  <ArrowLeftRight size={18} style={{ color: PRIMARY }} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h4 className="text-sm font-bold text-gray-900 truncate">
-                    {isIncoming
-                      ? (swap.proposer?.full_name || swap.proposer_name || t('dashboard.unknownUser'))
-                      : (swap.target?.full_name || swap.target_name || t('dashboard.unknownUser'))}
-                  </h4>
-                  <p className="text-xs text-gray-500 mt-0.5 truncate">
-                    {swap.offered_service?.title || swap.service?.title || t('dashboard.serviceOffered')}
-                  </p>
-                  {swap.created_at && (
-                    <span className="text-xs text-gray-400 mt-1.5 inline-block">
-                      {relativeTime(swap.created_at)}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <StatusBadge status={swap.status} map={swapStatusMap} />
-            </div>
-          </div>
-        ))}
-      </div>
-    )
+  const renderSection = ({ title, swaps, incoming, empty, dot }) => (
+    <div>
+      <h2 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
+        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: dot }} />
+        {title}
+        {swaps.length > 0 && (
+          <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">{swaps.length}</span>
+        )}
+      </h2>
+      {swaps.length === 0 ? (
+        <div className="py-10 text-center bg-white rounded-2xl border border-gray-100">
+          <ArrowLeftRight size={24} className="mx-auto text-gray-300 mb-2" />
+          <p className="text-sm text-gray-400">{empty}</p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {swaps.map((s) => <Fragment key={s.id}>{renderCard(s, incoming)}</Fragment>)}
+        </div>
+      )}
+    </div>
   )
 
   return (
     <div>
       <div className="mb-6">
         <h1 className="text-xl font-extrabold text-gray-900">{t('dashboard.skillSwaps')}</h1>
-        <p className="text-sm text-gray-500 mt-0.5">
-          {t('dashboard.swapsSubtitle')}
-        </p>
+        <p className="text-sm text-gray-500 mt-0.5">{t('dashboard.swapsSubtitle')}</p>
       </div>
-
       <div className="flex flex-col gap-8">
-        <div>
-          <h2 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: PRIMARY }} />
-            {t('dashboard.incomingProposals')}
-            {incomingSwaps.length > 0 && (
-              <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: PRIMARY }}>
-                {incomingSwaps.length}
-              </span>
-            )}
-          </h2>
-          <SwapList swaps={incomingSwaps} emptyMsg={t('dashboard.noIncomingSwaps')} isIncoming />
-        </div>
-
-        <div>
-          <h2 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-gray-400" />
-            {t('dashboard.myProposals')}
-            {outgoingSwaps.length > 0 && (
-              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-gray-200 text-gray-700">
-                {outgoingSwaps.length}
-              </span>
-            )}
-          </h2>
-          <SwapList swaps={outgoingSwaps} emptyMsg={t('dashboard.noOutgoingSwaps')} isIncoming={false} />
-        </div>
+        {renderSection({ title: t('dashboard.incomingProposals'), swaps: incomingSwaps, incoming: true, empty: t('dashboard.noIncomingSwaps'), dot: PRIMARY })}
+        {renderSection({ title: t('dashboard.myProposals'), swaps: outgoingSwaps, incoming: false, empty: t('dashboard.noOutgoingSwaps'), dot: '#9CA3AF' })}
       </div>
     </div>
   )
 }
 
-function SettingsTab() {
+function SettingsTab({ profile, onProfileChange, addToast }) {
   const { t } = useTranslation()
-  const [emailNotifs, setEmailNotifs] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const emailNotifs = profile?.email_notifications_enabled !== false
+
+  const toggle = async () => {
+    const next = !emailNotifs
+    setSaving(true)
+    onProfileChange({ email_notifications_enabled: next })
+    try {
+      await api.put('/users/profile', { email_notifications_enabled: next })
+      addToast(t('dashboard.settingSaved'))
+    } catch {
+      onProfileChange({ email_notifications_enabled: !next })
+      addToast(t('dashboard.actionFailed'), 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const row = ({ icon, title, desc, right }) => (
+    <div className="p-5 md:p-6 flex items-center justify-between gap-4">
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center flex-shrink-0">{icon}</div>
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-gray-900">{title}</p>
+          {desc && <p className="text-xs text-gray-500 mt-0.5">{desc}</p>}
+        </div>
+      </div>
+      {right}
+    </div>
+  )
 
   return (
-    <div>
+    <div className="max-w-3xl">
       <div className="mb-6">
         <h1 className="text-xl font-extrabold text-gray-900">{t('dashboard.accountSettings')}</h1>
         <p className="text-sm text-gray-500 mt-0.5">{t('dashboard.settingsSubtitle')}</p>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="p-5 md:p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
-                <Bell size={18} className="text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-gray-900">{t('dashboard.emailNotifications')}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{t('dashboard.emailNotificationsDesc')}</p>
-              </div>
-            </div>
-            <button
-              onClick={() => setEmailNotifs(!emailNotifs)}
-              className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${emailNotifs ? '' : 'bg-gray-200'}`}
-              style={emailNotifs ? { backgroundColor: PRIMARY } : {}}
-            >
-              <span
-                className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200 ${emailNotifs ? 'translate-x-5.5 left-0' : 'translate-x-0.5 left-0'}`}
-                style={{ transform: emailNotifs ? 'translateX(22px)' : 'translateX(2px)' }}
-              />
-            </button>
-          </div>
+      <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">{t('dashboard.profileSection')}</p>
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm mb-6 p-5 md:p-6 flex items-center gap-4">
+        <Avatar name={profile?.full_name} src={profile?.profile_picture_url} size={56} />
+        <div className="min-w-0 flex-1">
+          <p className="font-bold text-gray-900 truncate">{profile?.full_name || '—'}</p>
+          <p className="text-sm text-gray-500 truncate">{profile?.email || ''}</p>
+          <p className="text-xs text-gray-400 mt-1">{t('dashboard.editInApp')}</p>
         </div>
+      </div>
 
-        <div className="border-t border-gray-100 px-5 md:px-6 py-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center">
-              <Settings size={18} className="text-gray-400" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500">{t('dashboard.comingSoonSettings')}</p>
-            </div>
-          </div>
-        </div>
+      <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">{t('dashboard.notificationsSection')}</p>
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm mb-6">
+        {row({
+          icon: <Bell size={18} className="text-blue-600" />,
+          title: t('dashboard.emailNotifications'),
+          desc: t('dashboard.emailNotificationsDesc'),
+          right: (
+            <button onClick={toggle} disabled={saving || !profile} role="switch" aria-checked={emailNotifs}
+              className={`relative w-11 h-6 rounded-full transition-colors duration-200 flex-shrink-0 disabled:opacity-60 ${emailNotifs ? '' : 'bg-gray-200'}`}
+              style={emailNotifs ? { backgroundColor: PRIMARY } : {}}>
+              <span className="absolute top-0.5 left-0 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200"
+                style={{ transform: emailNotifs ? 'translateX(22px)' : 'translateX(2px)' }} />
+            </button>
+          ),
+        })}
+      </div>
+
+      <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">{t('dashboard.supportSection')}</p>
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-100">
+        <a href="mailto:hello@lifekithub.com" className="block hover:bg-gray-50/60 transition-colors">
+          {row({ icon: <Users size={18} className="text-gray-500" />, title: t('dashboard.contactSupport'), desc: 'hello@lifekithub.com', right: <ChevronRight size={16} className="text-gray-300" /> })}
+        </a>
+        <Link to="/privacy" className="block hover:bg-gray-50/60 transition-colors">
+          {row({ icon: <FileText size={18} className="text-gray-500" />, title: t('dashboard.privacyPolicy'), right: <ChevronRight size={16} className="text-gray-300" /> })}
+        </Link>
+        <Link to="/terms" className="block hover:bg-gray-50/60 transition-colors">
+          {row({ icon: <FileText size={18} className="text-gray-500" />, title: t('dashboard.termsOfService'), right: <ChevronRight size={16} className="text-gray-300" /> })}
+        </Link>
       </div>
     </div>
   )
@@ -1218,7 +1351,8 @@ export default function DashboardPage() {
 
   const [activeTab, setActiveTab]             = useState('overview')
   const [mobileOpen, setMobileOpen]           = useState(false)
-  const [user, setUser]                       = useState(null)
+  const [profile, setProfile]                 = useState(null)
+  const [wallet, setWallet]                   = useState(null)
   const [services, setServices]               = useState([])
   const [bookings, setBookings]               = useState([])
   const [incomingSwaps, setIncomingSwaps]      = useState([])
@@ -1233,15 +1367,12 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const token = localStorage.getItem('provider_token')
-    const stored = localStorage.getItem('provider_user')
     if (!token) { navigate('/login'); return }
-    if (stored) {
-      try {
-        setUser(JSON.parse(stored))
-      } catch {
-        localStorage.removeItem('provider_user')
-      }
-    }
+    // Header + settings use the live profile (name, plan, preferences).
+    api.get('/users/profile')
+      .then(({ data }) => setProfile(data.profile || null))
+      .catch((err) => { if (err.response?.status === 401) navigate('/login') })
+    api.get('/wallet').then(({ data }) => setWallet(data)).catch(() => {})
   }, [navigate])
 
   const addToast = useCallback((message, type = 'success') => {
@@ -1270,7 +1401,8 @@ export default function DashboardPage() {
     setLoadingBookings(true)
     try {
       const { data } = await api.get('/bookings/provider')
-      setBookings(data.bookings || [])
+      // The API returns provider bookings as `requests`.
+      setBookings(data.requests || data.bookings || [])
     } catch (err) {
       if (err.response?.status !== 401) {
         addToast(t('dashboard.failedLoadBookings'), 'error')
@@ -1315,13 +1447,59 @@ export default function DashboardPage() {
     }
   }, [activeTab, fetchBookings, fetchSwaps])
 
+  const handleBookingAction = useCallback(async (booking, status) => {
+    try {
+      await api.put(`/bookings/${booking.id}/status`, { status })
+      addToast(t(status === 'confirmed' ? 'dashboard.bookingAccepted' : 'dashboard.bookingDeclined'))
+      await fetchBookings()
+    } catch (err) {
+      addToast(err.response?.data?.error || t('dashboard.actionFailed'), 'error')
+    }
+  }, [addToast, fetchBookings, t])
+
+  const handleSwapAction = useCallback(async (swap, action) => {
+    try {
+      await api.put(`/swap-requests/${swap.id}/${action}`, {})
+      addToast(t({ accept: 'dashboard.swapAccepted', decline: 'dashboard.swapDeclined', cancel: 'dashboard.swapCancelled' }[action]))
+      await fetchSwaps()
+      if (action === 'accept') fetchBookings()
+    } catch (err) {
+      addToast(err.response?.data?.error || t('dashboard.actionFailed'), 'error')
+    }
+  }, [addToast, fetchSwaps, fetchBookings, t])
+
+  const handleDeleteService = useCallback(async (service) => {
+    try {
+      await api.delete(`/services/${service.id}`)
+      setServices((prev) => prev.filter((x) => x.id !== service.id))
+      addToast(t('dashboard.serviceDeleted'))
+      return true
+    } catch (err) {
+      addToast(err.response?.data?.error || t('dashboard.actionFailed'), 'error')
+      return false
+    }
+  }, [addToast, t])
+
   const handleLogout = () => {
     localStorage.removeItem('provider_token')
     localStorage.removeItem('provider_user')
     navigate('/login')
   }
 
-  const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || t('dashboard.provider')
+  const displayName = profile?.full_name || t('dashboard.provider')
+
+  // Real plan badge: Pro / Business / free trial with days left / Free.
+  const planBadge = (() => {
+    if (!profile) return null
+    const tier = (profile.subscription_tier || '').toLowerCase()
+    if (tier === 'pro') return t('dashboard.tierPro')
+    if (tier === 'business') return t('dashboard.tierBusiness')
+    const end = profile.trial_end_date ? new Date(profile.trial_end_date) : null
+    if (end && end > new Date()) {
+      return t('dashboard.tierTrial', { count: Math.ceil((end - new Date()) / 86400000) })
+    }
+    return t('dashboard.tierFree')
+  })()
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -1336,16 +1514,16 @@ export default function DashboardPage() {
             >
               <Menu size={20} />
             </button>
-            <div className="md:hidden w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: PRIMARY }}>
-              <Sparkles size={13} color="#fff" />
-            </div>
+            <img src="/logo2.png" alt="" className="md:hidden w-7 h-7 object-contain" />
             <div>
               <p className="text-sm font-bold text-gray-900 leading-none">{displayName}</p>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white uppercase tracking-wider" style={{ backgroundColor: PRIMARY }}>
-                  {t('dashboard.proProvider')}
-                </span>
-              </div>
+              {planBadge && (
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white uppercase tracking-wider" style={{ backgroundColor: PRIMARY }}>
+                    {planBadge}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1364,6 +1542,8 @@ export default function DashboardPage() {
         <main className="flex-1 px-4 md:px-6 py-6 md:py-7 overflow-y-auto">
           {activeTab === 'overview' && (
             <OverviewTab
+              profile={profile}
+              wallet={wallet}
               services={services}
               bookings={bookings}
               incomingSwaps={incomingSwaps}
@@ -1402,7 +1582,7 @@ export default function DashboardPage() {
               ) : (
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                   {services.map((s) => (
-                    <ServiceCard key={s.id} service={s} />
+                    <ServiceCard key={s.id} service={s} onDelete={handleDeleteService} />
                   ))}
                 </div>
               )}
@@ -1410,7 +1590,7 @@ export default function DashboardPage() {
           )}
 
           {activeTab === 'bookings' && (
-            <BookingsTab bookings={bookings} loading={loadingBookings} />
+            <BookingsTab bookings={bookings} loading={loadingBookings} onAction={handleBookingAction} />
           )}
 
           {activeTab === 'swaps' && (
@@ -1418,10 +1598,17 @@ export default function DashboardPage() {
               incomingSwaps={incomingSwaps}
               outgoingSwaps={outgoingSwaps}
               loading={loadingSwaps}
+              onAction={handleSwapAction}
             />
           )}
 
-          {activeTab === 'settings' && <SettingsTab />}
+          {activeTab === 'settings' && (
+            <SettingsTab
+              profile={profile}
+              onProfileChange={(patch) => setProfile((p) => ({ ...(p || {}), ...patch }))}
+              addToast={addToast}
+            />
+          )}
         </main>
       </div>
 

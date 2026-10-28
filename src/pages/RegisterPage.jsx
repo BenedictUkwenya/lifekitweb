@@ -246,8 +246,8 @@ export default function RegisterPage() {
 
         <div className="flex items-center justify-between relative z-10">
           <Link to="/" className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
-              <Sparkles size={18} color="#fff" />
+            <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center shadow-sm">
+              <img src="/logo2.png" alt="" className="w-6 h-6 object-contain" />
             </div>
             <span className="text-white text-xl font-bold tracking-tight">LifeKit</span>
           </Link>
@@ -287,9 +287,7 @@ export default function RegisterPage() {
       <div className="flex-1 flex flex-col justify-center px-6 py-12 sm:px-10 xl:px-20 bg-white">
         <div className="lg:hidden mb-8 flex items-center justify-between">
           <Link to="/" className="inline-flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: PRIMARY }}>
-              <Sparkles size={15} color="#fff" />
-            </div>
+            <img src="/logo2.png" alt="" className="w-8 h-8 object-contain" />
             <span className="font-bold text-gray-900">LifeKit</span>
           </Link>
           <LanguageSwitcher />

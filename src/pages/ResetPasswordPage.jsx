@@ -140,9 +140,7 @@ export default function ResetPasswordPage() {
     <div className="min-h-screen flex flex-col justify-center px-6 py-12 sm:px-10 bg-white">
       <div className="lg:hidden mb-8 flex items-center justify-between max-w-md mx-auto w-full">
         <Link to="/" className="inline-flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: PRIMARY }}>
-            <Sparkles size={15} color="#fff" />
-          </div>
+          <img src="/logo2.png" alt="" className="w-8 h-8 object-contain" />
           <span className="font-bold text-gray-900">LifeKit</span>
         </Link>
         <LanguageSwitcher />
