@@ -189,6 +189,7 @@ export default function LoginPage() {
 
       if (data.session?.access_token) {
         localStorage.setItem('provider_token', data.session.access_token)
+        if (data.session.refresh_token) localStorage.setItem('provider_refresh_token', data.session.refresh_token)
       }
       if (data.user) {
         localStorage.setItem('provider_user', JSON.stringify(data.user))
@@ -252,6 +253,7 @@ export default function LoginPage() {
 
       if (data.session?.access_token) {
         localStorage.setItem('provider_token', data.session.access_token)
+        if (data.session.refresh_token) localStorage.setItem('provider_refresh_token', data.session.refresh_token)
       }
       if (data.user) {
         localStorage.setItem('provider_user', JSON.stringify(data.user))

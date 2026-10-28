@@ -23,6 +23,42 @@ api.interceptors.request.use((config) => {
   return config
 })
 
+// Sessions expire after about an hour. On an expired-token response, swap
+// the refresh token for a new pair once (shared by concurrent requests) and
+// retry; if that fails, clear the session and send the user to login.
+let refreshing = null
+function clearSessionAndLogin() {
+  ;['provider_token', 'provider_refresh_token', 'provider_user'].forEach((k) => localStorage.removeItem(k))
+  if (window.location.pathname !== '/login') window.location.assign('/login')
+}
+api.interceptors.response.use(undefined, async (error) => {
+  const status = error.response?.status
+  const original = error.config
+  const expired = status === 401 || (status === 403 && /expired|invalid/i.test(error.response?.data?.error || ''))
+  if (!expired || !original || original._retried) return Promise.reject(error)
+
+  const refreshToken = localStorage.getItem('provider_refresh_token')
+  if (!refreshToken) {
+    clearSessionAndLogin()
+    return Promise.reject(error)
+  }
+  try {
+    refreshing ??= axios
+      .post(`${API_BASE}/auth/refresh-token`, { refresh_token: refreshToken })
+      .then(({ data }) => {
+        localStorage.setItem('provider_token', data.access_token)
+        if (data.refresh_token) localStorage.setItem('provider_refresh_token', data.refresh_token)
+      })
+      .finally(() => { refreshing = null })
+    await refreshing
+    original._retried = true
+    return api(original)
+  } catch {
+    clearSessionAndLogin()
+    return Promise.reject(error)
+  }
+})
+
 function Toast({ toasts }) {
   return (
     <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2 pointer-events-none">
@@ -1482,6 +1518,7 @@ export default function DashboardPage() {
 
   const handleLogout = () => {
     localStorage.removeItem('provider_token')
+    localStorage.removeItem('provider_refresh_token')
     localStorage.removeItem('provider_user')
     navigate('/login')
   }
