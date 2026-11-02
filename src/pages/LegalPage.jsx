@@ -264,24 +264,26 @@ const DELETE_ACCOUNT = {
       h: 'Before you delete',
       list: [
         'Deleting your account is permanent and cannot be undone.',
-        'Withdraw any wallet balance and finish or cancel open bookings first. If you can’t, contact us before deleting.',
+        <>You can’t delete your account while you have money in your wallet, an open booking or an open dispute. Withdraw your balance and settle these first. If you can’t, contact {mail}.</>,
       ],
     },
     {
       h: 'What we delete or anonymise',
-      p: 'Within 30 days of your request:',
+      p: 'Deleting in the app takes effect immediately. Email requests are completed within 30 days.',
       list: [
         'Your login and password.',
-        'Your name, email address, username, phone number, profile photo, bio and job title.',
-        'Your service listings, posts, comments and community content, which are removed or anonymised so they no longer identify you.',
-        'Your notifications, recent searches and the device tokens used to send you push notifications.',
+        'Your name, email address, username, phone number, profile photo, bio, job title and country.',
+        'Your posts, comments, likes and community posts, and your profile, post and service photos.',
+        'Your service listings, which are taken off LifeKit. Their basic details stay only on past booking records.',
+        'Your notifications, recent searches, support tickets, blocks, saved posts, group memberships and the device tokens used to send you push notifications.',
+        'Communities you created. If other members remain, the community passes to one of them instead.',
       ],
     },
     {
       h: 'What we keep',
       list: [
-        'Transaction, booking and dispute records, kept for as long as tax, accounting, fraud-prevention or legal obligations require.',
-        'Messages and reviews you exchanged with other users, which may stay visible to them without your name attached.',
+        'Wallet, transaction, booking, event ticket, dispute and safety report records, kept for as long as tax, accounting, fraud-prevention or legal obligations require.',
+        'Messages, chat photos and reviews you exchanged with other users, which stay visible to them under the name “Deleted User”.',
         'Records Stripe holds about your payments or payouts, under Stripe’s own privacy policy.',
       ],
     },
@@ -289,7 +291,7 @@ const DELETE_ACCOUNT = {
       h: 'Delete some data and keep your account',
       p: (
         <>
-          You can remove your own posts and comments, and edit your profile, in the app. To ask us to delete other
+          You can remove your own posts and edit your profile in the app. To ask us to delete other
           data without closing your account, email {mail}. See our{' '}
           <Link to="/privacy" className="text-[#89273B] underline">Privacy Policy</Link> for more.
         </>
