@@ -232,8 +232,76 @@ const TERMS = {
   ],
 }
 
+const DELETE_ACCOUNT = {
+  title: 'Delete your LifeKit account',
+  updated: 'November 2, 2026',
+  intro: (
+    <>
+      This page explains how to delete your account in the LifeKit app, published on Google Play by {LEGAL_ENTITY},
+      and what happens to your data when you do.
+    </>
+  ),
+  sections: [
+    {
+      h: 'Delete your account in the app',
+      steps: [
+        'Open LifeKit and sign in.',
+        'Go to your Profile.',
+        'Tap Password & Security.',
+        'Tap Delete Account, then confirm.',
+      ],
+    },
+    {
+      h: 'Or ask us by email',
+      p: (
+        <>
+          If you can’t sign in or no longer have the app, email {mail} from the address on your account (for Google
+          sign-in, your Google email) with the subject “Delete my account”. We respond within 30 days.
+        </>
+      ),
+    },
+    {
+      h: 'Before you delete',
+      list: [
+        'Deleting your account is permanent and cannot be undone.',
+        'Withdraw any wallet balance and finish or cancel open bookings first. If you can’t, contact us before deleting.',
+      ],
+    },
+    {
+      h: 'What we delete or anonymise',
+      p: 'Within 30 days of your request:',
+      list: [
+        'Your login and password.',
+        'Your name, email address, username, phone number, profile photo, bio and job title.',
+        'Your service listings, posts, comments and community content, which are removed or anonymised so they no longer identify you.',
+        'Your notifications, recent searches and the device tokens used to send you push notifications.',
+      ],
+    },
+    {
+      h: 'What we keep',
+      list: [
+        'Transaction, booking and dispute records, kept for as long as tax, accounting, fraud-prevention or legal obligations require.',
+        'Messages and reviews you exchanged with other users, which may stay visible to them without your name attached.',
+        'Records Stripe holds about your payments or payouts, under Stripe’s own privacy policy.',
+      ],
+    },
+    {
+      h: 'Delete some data and keep your account',
+      p: (
+        <>
+          You can remove your own posts and comments, and edit your profile, in the app. To ask us to delete other
+          data without closing your account, email {mail}. See our{' '}
+          <Link to="/privacy" className="text-[#89273B] underline">Privacy Policy</Link> for more.
+        </>
+      ),
+    },
+  ],
+}
+
+const DOCS = { privacy: PRIVACY, terms: TERMS, 'delete-account': DELETE_ACCOUNT }
+
 export default function LegalPage({ type }) {
-  const doc = type === 'terms' ? TERMS : PRIVACY
+  const doc = DOCS[type]
 
   useEffect(() => {
     document.title = `${doc.title} · LifeKit`
@@ -248,12 +316,13 @@ export default function LegalPage({ type }) {
           <nav className="flex gap-5 text-sm">
             <Link to="/privacy" className={type === 'privacy' ? 'text-[#89273B] font-semibold' : 'text-gray-500 hover:text-gray-900'}>Privacy</Link>
             <Link to="/terms" className={type === 'terms' ? 'text-[#89273B] font-semibold' : 'text-gray-500 hover:text-gray-900'}>Terms</Link>
+            <Link to="/delete-account" className={type === 'delete-account' ? 'text-[#89273B] font-semibold' : 'text-gray-500 hover:text-gray-900'}>Delete account</Link>
           </nav>
         </div>
       </header>
 
       <main className="max-w-3xl mx-auto px-5 sm:px-8 py-12 sm:py-16">
-        <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Last updated {LAST_UPDATED}</p>
+        <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Last updated {doc.updated || LAST_UPDATED}</p>
         <h1 className="mt-2 text-3xl sm:text-4xl font-bold text-gray-900">{doc.title}</h1>
         <p className="mt-6 text-base leading-relaxed text-gray-600">{doc.intro}</p>
 
@@ -261,6 +330,11 @@ export default function LegalPage({ type }) {
           <section key={s.h} className="mt-10">
             <h2 className="text-lg font-bold text-gray-900">{s.h}</h2>
             {s.p && <p className="mt-3 leading-relaxed text-gray-600">{s.p}</p>}
+            {s.steps && (
+              <ol className="mt-3 space-y-2 list-decimal pl-5 text-gray-600 leading-relaxed marker:text-[#89273B]">
+                {s.steps.map((item, i) => <li key={i}>{item}</li>)}
+              </ol>
+            )}
             {s.list && (
               <ul className="mt-3 space-y-2 list-disc pl-5 text-gray-600 leading-relaxed marker:text-[#89273B]">
                 {s.list.map((item, i) => <li key={i}>{item}</li>)}

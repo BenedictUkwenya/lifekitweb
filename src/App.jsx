@@ -68,6 +68,7 @@ function AnimatedRoutes() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/privacy" element={<LegalPage type="privacy" />} />
           <Route path="/terms" element={<LegalPage type="terms" />} />
+          <Route path="/delete-account" element={<LegalPage type="delete-account" />} />
         </Routes>
       </Motion.div>
     </AnimatePresence>
