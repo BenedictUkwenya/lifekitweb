@@ -14,6 +14,8 @@ import LanguageSwitcher from '../components/LanguageSwitcher'
 
 const PRIMARY   = '#89273B'
 const API_BASE  = import.meta.env.VITE_API_URL
+const CURRENCY  = '₾' // prices are shown in Georgian lari
+const MAX_SERVICE_EDITS = 2 // matches the limit enforced by the API
 
 const api = axios.create({ baseURL: API_BASE })
 api.interceptors.request.use((config) => {
@@ -177,9 +179,9 @@ function SkeletonRow() {
   )
 }
 
-function StatCard({ icon, label, value, tint }) {
+function StatCard({ icon, label, value, tint, onClick }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex items-start gap-4 hover:shadow-md transition-shadow">
+    <button type="button" onClick={onClick} className="w-full text-left bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex items-start gap-4 hover:shadow-md active:scale-[0.98] transition-all">
       <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: tint }}>
         {icon}
       </div>
@@ -187,7 +189,7 @@ function StatCard({ icon, label, value, tint }) {
         <p className="text-2xl font-extrabold text-gray-900 leading-none">{value}</p>
         <p className="text-sm text-gray-500 mt-1 font-medium">{label}</p>
       </div>
-    </div>
+    </button>
   )
 }
 
@@ -200,7 +202,7 @@ function StatusBadge({ status, map }) {
   )
 }
 
-function CreateServiceWizard({ onClose, onSuccess, addToast }) {
+function CreateServiceWizard({ onClose, onSuccess, addToast, limits }) {
   const { t } = useTranslation()
   const [step, setStep]               = useState(1)
   const [error, setError]             = useState('')
@@ -218,6 +220,8 @@ function CreateServiceWizard({ onClose, onSuccess, addToast }) {
   const [creatingDrafts, setCreatingDrafts] = useState(false)
 
   const [draftService, setDraftService]   = useState(null)
+  const [draftQueue, setDraftQueue]       = useState([])
+  const [draftTotal, setDraftTotal]       = useState(0)
   const [isStandalone, setIsStandalone]   = useState(false)
   const [title, setTitle]                 = useState('')
   const [description, setDescription]     = useState('')
@@ -276,12 +280,38 @@ function CreateServiceWizard({ onClose, onSuccess, addToast }) {
     }
   }
 
-  const toggleSub = (id) =>
+  // How many more services the plan allows (standalone categories make one).
+  const remainingSlots = limits && limits.limit !== null ? Math.max(0, limits.limit - limits.used) : Infinity
+
+  const toggleSub = (id) => {
+    if (!selectedSubIds.has(id) && !selectedMain?.is_standalone && selectedSubIds.size >= remainingSlots) {
+      setError(t('wizard.selectionLimit', { count: remainingSlots }))
+      return
+    }
+    setError('')
     setSelectedSubIds(prev => {
       const next = new Set(prev)
       next.has(id) ? next.delete(id) : next.add(id)
       return next
     })
+  }
+
+  const loadDraft = (svc) => {
+    setDraftService(svc)
+    setTitle(svc.title || '')
+    setDescription(svc.description || '')
+    setPricingType(svc.pricing_type || 'fixed')
+    setServiceType(svc.service_type && svc.service_type !== 'Default' ? svc.service_type : 'Home Service (HS)')
+    setBasePrice(svc.price ? String(svc.price) : '')
+    setImageFiles([])
+    const standalone = !!(selectedMain?.is_standalone || (svc.service_options?.length > 0))
+    setIsStandalone(standalone)
+    if (standalone && svc.service_options?.length) {
+      setServiceOptions(svc.service_options.map(o => ({ name: o.name || '', price: String(o.price ?? 0) })))
+    } else if (standalone) {
+      setServiceOptions([{ name: '', price: '' }])
+    }
+  }
 
   const createDrafts = async () => {
     if (!selectedSubIds.size) return setError(t('wizard.selectAtLeastOne'))
@@ -291,24 +321,14 @@ function CreateServiceWizard({ onClose, onSuccess, addToast }) {
       const { data } = await api.post('/services', { category_ids: [...selectedSubIds] })
       const svcList = data.services || []
       if (!svcList.length) throw new Error('No services returned from server.')
-      const first = svcList[0]
-      setDraftService(first)
-      setTitle(first.title || '')
-      setDescription(first.description || '')
-      setPricingType(first.pricing_type || 'fixed')
-      setServiceType(first.service_type || 'Home Service (HS)')
-      if (first.price) setBasePrice(String(first.price))
-      const standalone = !!(selectedMain?.is_standalone || (first.service_options?.length > 0))
-      setIsStandalone(standalone)
-      if (standalone && first.service_options?.length) {
-        setServiceOptions(first.service_options.map(o => ({ name: o.name || '', price: String(o.price ?? 0) })))
-      } else if (standalone) {
-        setServiceOptions([{ name: '', price: '' }])
-      }
+      loadDraft(svcList[0])
+      setDraftQueue(svcList.slice(1))
+      setDraftTotal(svcList.length)
       setStep(3)
     } catch (err) {
       if (err.response?.status === 403) {
-        setError(t('wizard.planLimitReached'))
+        const limit = err.response?.data?.limit
+        setError(limit != null ? t('wizard.planLimitDetail', { limit }) : t('wizard.planLimitReached'))
       } else {
         setError(err.response?.data?.error || err.message || t('wizard.failedCreateService'))
       }
@@ -347,6 +367,8 @@ function CreateServiceWizard({ onClose, onSuccess, addToast }) {
   const handleSave = async () => {
     if (!title.trim()) return setError(t('wizard.serviceTitleRequired'))
     if (!isStandalone && basePrice !== '' && isNaN(Number(basePrice))) return setError(t('wizard.invalidPrice'))
+    if (!isStandalone && !(parseFloat(basePrice) > 0)) return setError(t('dashboard.priceRequired'))
+    if (isStandalone && !serviceOptions.some(o => parseFloat(o.price) > 0)) return setError(t('dashboard.priceRequired'))
     setError('')
     setStep('saving')
     try {
@@ -382,6 +404,13 @@ function CreateServiceWizard({ onClose, onSuccess, addToast }) {
           : [],
         ...(imageUrls.length ? { image_urls: imageUrls } : {}),
       })
+      // Several sub-categories selected: fill in the next one.
+      if (draftQueue.length > 0) {
+        loadDraft(draftQueue[0])
+        setDraftQueue(q => q.slice(1))
+        setStep(3)
+        return
+      }
       setStep('done')
       setTimeout(() => { onSuccess(); onClose() }, 900)
     } catch (err) {
@@ -544,6 +573,11 @@ function CreateServiceWizard({ onClose, onSuccess, addToast }) {
               ) : (
                 <div className="flex flex-col gap-2">
                   <p className="text-xs text-gray-500 font-medium mb-1">{t('wizard.selectAllApply')}</p>
+                  {limits && limits.limit !== null && !selectedMain?.is_standalone && (
+                    <p className="text-xs font-semibold mb-1" style={{ color: PRIMARY }}>
+                      {t('wizard.slotsLeft', { limit: limits.limit, count: remainingSlots })}
+                    </p>
+                  )}
                   {subCats.map((c) => {
                     const checked = selectedSubIds.has(c.id)
                     return (
@@ -582,6 +616,11 @@ function CreateServiceWizard({ onClose, onSuccess, addToast }) {
 
           {step === 3 && (
             <div className="p-5 flex flex-col gap-4">
+              {draftTotal > 1 && (
+                <p className="text-xs font-bold uppercase tracking-wider" style={{ color: PRIMARY }}>
+                  {t('wizard.serviceOfTotal', { current: draftTotal - draftQueue.length, total: draftTotal })}
+                </p>
+              )}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t('wizard.serviceTitleLabel')}</label>
                 <input
@@ -631,7 +670,7 @@ function CreateServiceWizard({ onClose, onSuccess, addToast }) {
                           className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 outline-none transition"
                         />
                         <div className="relative w-28 flex-shrink-0">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">{CURRENCY}</span>
                           <input
                             type="number" min="0" placeholder="0.00"
                             value={opt.price}
@@ -658,7 +697,7 @@ function CreateServiceWizard({ onClose, onSuccess, addToast }) {
                     {t('wizard.basePriceLabel')} {pricingType === 'hourly' && <span className="text-gray-400 font-normal text-xs">{t('wizard.basePricePerHour')}</span>}
                   </label>
                   <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">$</span>
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">{CURRENCY}</span>
                     <input
                       type="number" min="0" step="0.01"
                       placeholder={pricingType === 'fixed' ? t('wizard.flatFeePlaceholder') : t('wizard.ratePlaceholder')}
@@ -752,13 +791,6 @@ function CreateServiceWizard({ onClose, onSuccess, addToast }) {
               <div className="flex gap-3 pb-1">
                 <button
                   type="button"
-                  onClick={() => { setStep(2); setError('') }}
-                  className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-all"
-                >
-                  {t('wizard.backBtn')}
-                </button>
-                <button
-                  type="button"
                   onClick={handleSave}
                   className="flex-1 py-3 rounded-xl text-white text-sm font-bold shadow-md hover:opacity-90 active:scale-[0.98] transition-all"
                   style={{ backgroundColor: PRIMARY }}
@@ -774,9 +806,8 @@ function CreateServiceWizard({ onClose, onSuccess, addToast }) {
   )
 }
 
-function ServiceCard({ service, onDelete }) {
+function ServiceCard({ service, onEdit }) {
   const { t, i18n } = useTranslation()
-  const [deleting, setDeleting] = useState(false)
 
   const statusMeta = (status) => {
     switch ((status || '').toLowerCase()) {
@@ -793,7 +824,12 @@ function ServiceCard({ service, onDelete }) {
   const thumb = service.image_urls?.[0]
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden group">
+    <button
+      type="button"
+      onClick={() => onEdit(service)}
+      aria-label={t('dashboard.editService')}
+      className="w-full text-left bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md active:scale-[0.99] transition-all duration-200 overflow-hidden group"
+    >
       <div className="aspect-video bg-gray-50 relative overflow-hidden">
         {thumb ? (
           <img src={thumb} alt={service.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
@@ -805,22 +841,9 @@ function ServiceCard({ service, onDelete }) {
         <span className={`absolute top-2.5 right-2.5 text-xs font-semibold px-2.5 py-1 rounded-full ${bg} ${text}`}>
           {label}
         </span>
-        {onDelete && (
-          <button
-            onClick={async () => {
-              if (!window.confirm(t('dashboard.confirmDeleteService'))) return
-              setDeleting(true)
-              const ok = await onDelete(service)
-              if (!ok) setDeleting(false)
-            }}
-            disabled={deleting}
-            aria-label={t('dashboard.deleteService')}
-            title={t('dashboard.deleteService')}
-            className="absolute top-2.5 left-2.5 w-8 h-8 rounded-full bg-white/90 text-gray-500 hover:text-red-600 flex items-center justify-center shadow-sm opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity disabled:opacity-100"
-          >
-            {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-          </button>
-        )}
+        <span className="absolute top-2.5 left-2.5 w-8 h-8 rounded-full bg-white/90 text-gray-600 flex items-center justify-center shadow-sm">
+          <Pencil size={14} />
+        </span>
       </div>
 
       <div className="p-4">
@@ -828,7 +851,7 @@ function ServiceCard({ service, onDelete }) {
         <h3 className="font-bold text-gray-900 text-sm leading-snug line-clamp-2">{service.title || 'Untitled Service'}</h3>
         <div className="mt-3 flex items-center justify-between">
           <span className="text-base font-extrabold" style={{ color: PRIMARY }}>
-            {service.price ? `$${Number(service.price).toFixed(2)}` : t('dashboard.freeTbd')}
+            {Number(service.price) > 0 ? `${CURRENCY}${Number(service.price).toFixed(2)}` : t('dashboard.freeTbd')}
           </span>
           <div className="flex items-center gap-1.5 text-gray-400">
             <Clock size={12} />
@@ -836,6 +859,290 @@ function ServiceCard({ service, onDelete }) {
           </div>
         </div>
       </div>
+    </button>
+  )
+}
+
+/** Edit an existing service: details, price, photos, visibility, delete. */
+function EditServiceModal({ service, onClose, onSaved, onDelete }) {
+  const { t } = useTranslation()
+  const isStandalone = (service.service_options || []).length > 0
+  const isDraft = (service.status || '').toLowerCase() === 'draft'
+  const isSetup = isDraft || !(Number(service.price) > 0)
+  const editsLeft = Math.max(0, MAX_SERVICE_EDITS - (service.edit_count || 0))
+  const locked = !isSetup && editsLeft === 0
+
+  const [title, setTitle] = useState(service.title || '')
+  const [description, setDescription] = useState(service.description || '')
+  const [pricingType, setPricingType] = useState(service.pricing_type || 'fixed')
+  const [serviceType, setServiceType] = useState(service.service_type || '')
+  const [basePrice, setBasePrice] = useState(Number(service.price) > 0 ? String(service.price) : '')
+  const [options, setOptions] = useState((service.service_options || []).map(o => ({ name: o.name || '', price: String(o.price ?? '') })))
+  const [existingImages, setExistingImages] = useState(service.image_urls || [])
+  const [newImages, setNewImages] = useState([])
+  const [visible, setVisible] = useState(isSetup || (service.status || '').toLowerCase() === 'active')
+  const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [error, setError] = useState('')
+  const fileRef = useRef()
+
+  const SERVICE_TYPES = ['Home Service (HS)', 'Outdoor', 'Both']
+  const MAX_IMAGES = 5
+  const imageCount = existingImages.length + newImages.length
+  const inputCls = 'w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-gray-50 outline-none focus:border-gray-400 transition disabled:opacity-60'
+
+  const addFiles = (e) => {
+    const files = Array.from(e.target.files || []).slice(0, MAX_IMAGES - imageCount)
+    if (files.some(f => f.size > 5 * 1024 * 1024)) { setError(t('wizard.imageTooLarge')); return }
+    setNewImages(prev => [...prev, ...files.map(f => ({ file: f, preview: URL.createObjectURL(f) }))])
+    if (fileRef.current) fileRef.current.value = ''
+  }
+
+  const save = async () => {
+    const nextStatus = visible ? 'active' : 'draft'
+    const statusChanged = nextStatus !== (service.status || '').toLowerCase()
+    const price = isStandalone
+      ? Math.min(...options.map(o => parseFloat(o.price) || 0).filter(p => p > 0), Infinity)
+      : parseFloat(basePrice) || 0
+    const finalPrice = Number.isFinite(price) ? price : 0
+    const nextOptions = options.map(o => ({ name: o.name, price: parseFloat(o.price) || 0 }))
+
+    const detailsChanged =
+      title.trim() !== (service.title || '') ||
+      description.trim() !== (service.description || '') ||
+      pricingType !== (service.pricing_type || 'fixed') ||
+      serviceType !== (service.service_type || '') ||
+      finalPrice !== Number(service.price || 0) ||
+      newImages.length > 0 ||
+      existingImages.length !== (service.image_urls || []).length ||
+      JSON.stringify(nextOptions) !== JSON.stringify((service.service_options || []).map(o => ({ name: o.name, price: Number(o.price) || 0 })))
+
+    if (!title.trim()) return setError(t('wizard.serviceTitleRequired'))
+    if (visible && !(finalPrice > 0)) return setError(t('dashboard.priceRequired'))
+    if (!detailsChanged && !statusChanged) return onClose()
+
+    setError('')
+    setSaving(true)
+    try {
+      // A visibility-only change doesn't use up an edit.
+      if (!detailsChanged) {
+        await api.put(`/services/${service.id}`, { status: nextStatus })
+      } else {
+        const uploaded = []
+        for (const img of newImages) {
+          const fd = new FormData()
+          fd.append('file', img.file)
+          const { data } = await api.post('/storage/upload/services', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+          uploaded.push(data.url)
+        }
+        await api.put(`/services/${service.id}`, {
+          title: title.trim(),
+          description: description.trim(),
+          price: finalPrice,
+          pricing_type: pricingType,
+          ...(serviceType ? { service_type: serviceType } : {}),
+          status: nextStatus,
+          image_urls: [...existingImages, ...uploaded],
+          ...(isStandalone ? { service_options: nextOptions } : {}),
+        })
+      }
+      onSaved()
+    } catch (err) {
+      setError(err.response?.data?.error || t('dashboard.actionFailed'))
+      setSaving(false)
+    }
+  }
+
+  const remove = async () => {
+    if (!window.confirm(t('dashboard.confirmDeleteService'))) return
+    setDeleting(true)
+    const ok = await onDelete(service)
+    if (ok) onClose()
+    else setDeleting(false)
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={saving ? undefined : onClose} />
+      <div className="relative bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-lg max-h-[92vh] flex flex-col overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+          <div className="min-w-0">
+            <h2 className="text-lg font-bold text-gray-900">{t('dashboard.editService')}</h2>
+            {!isSetup && (
+              <p className={`text-xs mt-0.5 ${locked ? 'text-red-600' : 'text-gray-500'}`}>
+                {t('dashboard.editsLeft', { left: editsLeft, total: MAX_SERVICE_EDITS })}
+              </p>
+            )}
+          </div>
+          <button onClick={onClose} disabled={saving} aria-label={t('dashboard.cancel')} className="p-2 rounded-xl text-gray-400 hover:bg-gray-100 transition-colors">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-4">
+          {locked && <ErrorBanner msg={t('dashboard.editsUsedUp')} />}
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t('wizard.serviceTitleLabel')}</label>
+            <input type="text" value={title} disabled={locked} onChange={e => setTitle(e.target.value)} className={inputCls} />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">{t('wizard.pricingTypeLabel')}</label>
+            <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
+              {['fixed', 'hourly'].map(pt => (
+                <button key={pt} type="button" disabled={locked} onClick={() => setPricingType(pt)}
+                  className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${pricingType === pt ? 'bg-white shadow-sm' : 'text-gray-500'}`}
+                  style={pricingType === pt ? { color: PRIMARY } : {}}>
+                  {pt === 'fixed' ? t('wizard.fixedPrice') : t('wizard.hourlyRate')}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {isStandalone ? (
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">{t('wizard.serviceOptionsLabel')}</label>
+              <div className="flex flex-col gap-2">
+                {options.map((o, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <input type="text" value={o.name} disabled={locked}
+                      onChange={e => setOptions(p => p.map((x, j) => j === i ? { ...x, name: e.target.value } : x))}
+                      className="flex-1 min-w-0 border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 outline-none" />
+                    <div className="relative w-28 flex-shrink-0">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">{CURRENCY}</span>
+                      <input type="number" min="0" inputMode="decimal" value={o.price} disabled={locked}
+                        onChange={e => setOptions(p => p.map((x, j) => j === i ? { ...x, price: e.target.value } : x))}
+                        className="w-full border border-gray-200 rounded-xl pl-7 pr-2 py-2.5 text-sm bg-gray-50 outline-none" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                {t('wizard.basePriceLabel')} {pricingType === 'hourly' && <span className="text-gray-400 font-normal text-xs">{t('wizard.basePricePerHour')}</span>}
+              </label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">{CURRENCY}</span>
+                <input type="number" min="0" step="0.01" inputMode="decimal" value={basePrice} disabled={locked}
+                  onChange={e => setBasePrice(e.target.value)} className={`${inputCls} pl-8`} />
+              </div>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t('wizard.descriptionFieldLabel')}</label>
+            <textarea rows={3} value={description} disabled={locked} onChange={e => setDescription(e.target.value)} className={`${inputCls} resize-none`} />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">{t('wizard.serviceTypeLabel')}</label>
+            <div className="flex gap-2 flex-wrap">
+              {SERVICE_TYPES.map(st => (
+                <button key={st} type="button" disabled={locked} onClick={() => setServiceType(st)}
+                  className={`px-4 py-2 rounded-xl text-sm font-semibold border-2 transition-all ${serviceType === st ? 'border-transparent text-white' : 'border-gray-100 text-gray-600 bg-white'}`}
+                  style={serviceType === st ? { backgroundColor: PRIMARY } : {}}>
+                  {st}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              {t('wizard.serviceImageLabel')} <span className="text-gray-400 font-normal text-xs">({imageCount}/{MAX_IMAGES})</span>
+            </label>
+            <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={addFiles} />
+            <div className="flex flex-wrap gap-2.5">
+              {existingImages.map((url) => (
+                <div key={url} className="relative w-20 h-20 rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
+                  <img src={url} alt="" className="w-full h-full object-cover" />
+                  {!locked && (
+                    <button type="button" aria-label={t('dashboard.removePhoto')} onClick={() => setExistingImages(p => p.filter(u => u !== url))}
+                      className="absolute top-1 right-1 w-6 h-6 bg-black/60 rounded-full flex items-center justify-center text-white">
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+              ))}
+              {newImages.map((img, i) => (
+                <div key={img.preview} className="relative w-20 h-20 rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
+                  <img src={img.preview} alt="" className="w-full h-full object-cover" />
+                  <button type="button" aria-label={t('dashboard.removePhoto')} onClick={() => setNewImages(p => p.filter((_, j) => j !== i))}
+                    className="absolute top-1 right-1 w-6 h-6 bg-black/60 rounded-full flex items-center justify-center text-white">
+                    <X size={12} />
+                  </button>
+                </div>
+              ))}
+              {!locked && imageCount < MAX_IMAGES && (
+                <button type="button" onClick={() => fileRef.current?.click()}
+                  className="w-20 h-20 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center gap-1 text-gray-400 hover:bg-gray-50 transition-all">
+                  <Plus size={18} />
+                  <span className="text-[10px] font-medium">{t('wizard.addPhoto')}</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-4 rounded-2xl bg-gray-50 px-4 py-3">
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-gray-900">{t('dashboard.visibleToClients')}</p>
+              <p className="text-xs text-gray-500 mt-0.5">{t('dashboard.visibleHint')}</p>
+            </div>
+            <button type="button" role="switch" aria-checked={visible} aria-label={t('dashboard.visibleToClients')} onClick={() => setVisible(v => !v)}
+              className={`relative w-11 h-6 rounded-full transition-colors duration-200 flex-shrink-0 ${visible ? '' : 'bg-gray-300'}`}
+              style={visible ? { backgroundColor: PRIMARY } : {}}>
+              <span className="absolute top-0.5 left-0 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200"
+                style={{ transform: visible ? 'translateX(22px)' : 'translateX(2px)' }} />
+            </button>
+          </div>
+
+          {error && <ErrorBanner msg={error} />}
+
+          <button type="button" onClick={remove} disabled={deleting || saving}
+            className="inline-flex items-center justify-center gap-2 text-sm font-semibold text-red-600 py-2 disabled:opacity-50">
+            {deleting ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
+            {t('dashboard.deleteService')}
+          </button>
+        </div>
+
+        <div className="p-4 border-t border-gray-100 flex gap-3 flex-shrink-0">
+          <button type="button" onClick={onClose} disabled={saving}
+            className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-all">
+            {t('dashboard.cancel')}
+          </button>
+          <button type="button" onClick={save} disabled={saving}
+            className="flex-1 py-3 rounded-xl text-white text-sm font-bold shadow-md hover:opacity-90 transition-all disabled:opacity-60 inline-flex items-center justify-center gap-2"
+            style={{ backgroundColor: PRIMARY }}>
+            {saving && <Loader2 size={15} className="animate-spin" />}
+            {t('dashboard.saveChanges')}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** "2 of 3 services used on your plan", with a bar and upgrade note. */
+function PlanUsage({ limits }) {
+  const { t } = useTranslation()
+  if (!limits) return null
+  const { limit, used } = limits
+  const atLimit = limit !== null && used >= limit
+  const pct = limit ? Math.min(100, Math.round((used / limit) * 100)) : 100
+  return (
+    <div className={`rounded-2xl border p-4 mb-5 ${atLimit ? 'bg-amber-50 border-amber-200' : 'bg-white border-gray-100'}`}>
+      <p className="text-sm font-bold text-gray-900">
+        {limit === null ? t('dashboard.planUnlimited', { used }) : t('dashboard.planUsage', { used, limit })}
+      </p>
+      {limit !== null && limit > 0 && (
+        <div className="h-1.5 rounded-full bg-gray-200 mt-2 overflow-hidden">
+          <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: atLimit ? '#D97706' : PRIMARY }} />
+        </div>
+      )}
+      {atLimit && <p className="text-xs text-gray-600 mt-2 leading-relaxed">{t('dashboard.planAtLimit', { limit })}</p>}
     </div>
   )
 }
@@ -899,6 +1206,7 @@ function useStatusMaps() {
 
 const bookingStatus = (b) => (b.is_overdue ? 'overdue' : (b.status || '').toLowerCase())
 const money = (n) => `$${Number(n || 0).toFixed(2)}`
+const priceText = (n) => `${CURRENCY}${Number(n || 0).toFixed(2)}`
 
 function Avatar({ name, src, size = 40 }) {
   const initial = (name || '?').trim().charAt(0).toUpperCase() || '?'
@@ -1027,10 +1335,10 @@ function OverviewTab({ profile, wallet, services, bookings, incomingSwaps, outgo
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={<Briefcase size={20} style={{ color: PRIMARY }} />} label={t('dashboard.activeServices')} value={activeCount} tint={`${PRIMARY}12`} />
-        <StatCard icon={<Calendar size={20} className="text-blue-600" />} label={t('dashboard.totalBookings')} value={bookings.length} tint="#EFF6FF" />
-        <StatCard icon={<CheckCircle2 size={20} className="text-emerald-600" />} label={t('dashboard.completedJobs')} value={completedJobs} tint="#ECFDF5" />
-        <StatCard icon={<Clock size={20} className="text-amber-600" />} label={t('dashboard.pendingRequests')} value={needsAction} tint="#FFFBEB" />
+        <StatCard icon={<Briefcase size={20} style={{ color: PRIMARY }} />} label={t('dashboard.activeServices')} value={activeCount} tint={`${PRIMARY}12`} onClick={() => setActiveTab('services')} />
+        <StatCard icon={<Calendar size={20} className="text-blue-600" />} label={t('dashboard.totalBookings')} value={bookings.length} tint="#EFF6FF" onClick={() => setActiveTab('bookings')} />
+        <StatCard icon={<CheckCircle2 size={20} className="text-emerald-600" />} label={t('dashboard.completedJobs')} value={completedJobs} tint="#ECFDF5" onClick={() => setActiveTab('bookings')} />
+        <StatCard icon={<Clock size={20} className="text-amber-600" />} label={t('dashboard.pendingRequests')} value={needsAction} tint="#FFFBEB" onClick={() => setActiveTab(pendingIncoming > 0 && pendingBookings === 0 ? 'swaps' : 'bookings')} />
       </div>
 
       <div className="rounded-2xl p-6 md:p-8 text-white relative overflow-hidden"
@@ -1168,7 +1476,7 @@ function BookingsTab({ bookings, loading, onAction }) {
                         </span>
                       )}
                       <span className="font-bold" style={{ color: PRIMARY }}>
-                        {Number(b.total_price) > 0 ? money(b.total_price) : t('dashboard.skillSwap')}
+                        {Number(b.total_price) > 0 ? priceText(b.total_price) : t('dashboard.skillSwap')}
                       </span>
                     </div>
                     {s === 'pending' && (
@@ -1397,6 +1705,8 @@ export default function DashboardPage() {
   const [loadingBookings, setLoadingBookings]  = useState(true)
   const [loadingSwaps, setLoadingSwaps]        = useState(true)
   const [showModal, setShowModal]             = useState(false)
+  const [limits, setLimits]                   = useState(null)
+  const [editing, setEditing]                 = useState(null)
   const [toasts, setToasts]                   = useState([])
 
   const tabDataLoaded = useRef({ bookings: false, swaps: false })
@@ -1422,6 +1732,7 @@ export default function DashboardPage() {
     try {
       const { data } = await api.get('/services/my-services')
       setServices(data.services || [])
+      setLimits(data.limits || null)
     } catch (err) {
       if (err.response?.status === 401) {
         navigate('/login')
@@ -1507,14 +1818,16 @@ export default function DashboardPage() {
   const handleDeleteService = useCallback(async (service) => {
     try {
       await api.delete(`/services/${service.id}`)
-      setServices((prev) => prev.filter((x) => x.id !== service.id))
+      await fetchServices()
       addToast(t('dashboard.serviceDeleted'))
       return true
     } catch (err) {
       addToast(err.response?.data?.error || t('dashboard.actionFailed'), 'error')
       return false
     }
-  }, [addToast, t])
+  }, [addToast, fetchServices, t])
+
+  const atLimit = !!limits && limits.limit !== null && limits.used >= limits.limit
 
   const handleLogout = () => {
     localStorage.removeItem('provider_token')
@@ -1592,7 +1905,7 @@ export default function DashboardPage() {
 
           {activeTab === 'services' && (
             <>
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between mb-5">
                 <div>
                   <h1 className="text-xl font-extrabold text-gray-900">{t('dashboard.myServices')}</h1>
                   <p className="text-sm text-gray-500 mt-0.5">
@@ -1601,7 +1914,8 @@ export default function DashboardPage() {
                 </div>
                 <button
                   onClick={() => setShowModal(true)}
-                  className="flex items-center gap-2 text-white font-semibold text-sm px-4 py-2.5 rounded-xl shadow-md hover:opacity-90 active:scale-[0.98] transition-all"
+                  disabled={atLimit}
+                  className="flex items-center gap-2 text-white font-semibold text-sm px-4 py-2.5 rounded-xl shadow-md hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                   style={{ backgroundColor: PRIMARY }}
                 >
                   <PlusCircle size={16} />
@@ -1609,6 +1923,8 @@ export default function DashboardPage() {
                   <span className="sm:hidden">{t('dashboard.newServiceShort')}</span>
                 </button>
               </div>
+
+              <PlanUsage limits={limits} />
 
               {loadingServices ? (
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -1619,7 +1935,7 @@ export default function DashboardPage() {
               ) : (
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                   {services.map((s) => (
-                    <ServiceCard key={s.id} service={s} onDelete={handleDeleteService} />
+                    <ServiceCard key={s.id} service={s} onEdit={setEditing} />
                   ))}
                 </div>
               )}
@@ -1651,12 +1967,27 @@ export default function DashboardPage() {
 
       {showModal && (
         <CreateServiceWizard
-          onClose={() => setShowModal(false)}
+          limits={limits}
+          onClose={() => { setShowModal(false); fetchServices() }}
           onSuccess={() => {
             fetchServices()
             addToast(t('dashboard.servicePublished'))
           }}
           addToast={addToast}
+        />
+      )}
+
+      {editing && (
+        <EditServiceModal
+          key={editing.id}
+          service={editing}
+          onClose={() => setEditing(null)}
+          onDelete={handleDeleteService}
+          onSaved={() => {
+            setEditing(null)
+            fetchServices()
+            addToast(t('dashboard.serviceSaved'))
+          }}
         />
       )}
 

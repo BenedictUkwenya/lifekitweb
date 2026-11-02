@@ -406,7 +406,20 @@
     "tierPro": "Pro",
     "tierBusiness": "Business",
     "tierTrial": "Free trial · {{count}}d left",
-    "tierFree": "Free plan"
+    "tierFree": "Free plan",
+    "editService": "Edit service",
+    "editsLeft": "{{left}} of {{total}} edits left",
+    "editsUsedUp": "You've used all your edits for this service. You can still show or hide it, or contact support for further changes.",
+    "priceRequired": "Please enter a price before publishing.",
+    "removePhoto": "Remove photo",
+    "visibleToClients": "Visible to clients",
+    "visibleHint": "Turn off to hide this service without deleting it.",
+    "cancel": "Cancel",
+    "saveChanges": "Save changes",
+    "serviceSaved": "Service saved",
+    "planUsage": "{{used}} of {{limit}} services used on your plan",
+    "planUnlimited": "{{used}} services — unlimited on your plan",
+    "planAtLimit": "Your plan includes {{limit}} services. Delete one to add another, or upgrade your plan in the LifeKit app."
   },
   "wizard": {
     "stepCategory": "Select Category",
@@ -467,7 +480,11 @@
     "publishingService": "Publishing service…",
     "failedSaveService": "Failed to save service.",
     "publishService": "Publish Service",
-    "backBtn": "← Back"
+    "backBtn": "← Back",
+    "selectionLimit": "Your plan lets you add {{count}} more service(s).",
+    "slotsLeft": "Your plan includes {{limit}} services. You can add {{count}} more.",
+    "planLimitDetail": "Your plan includes {{limit}} services. Delete one to add another, or upgrade your plan in the LifeKit app.",
+    "serviceOfTotal": "Service {{current}} of {{total}}"
   },
   "language": {
     "label": "Language",
