@@ -21,6 +21,7 @@ const mail = <a href={`mailto:${CONTACT_EMAIL}`} className="text-[#89273B] under
 
 const PRIVACY = {
   title: 'Privacy Policy',
+  updated: 'November 4, 2026',
   intro: (
     <>
       This policy explains what information {company} (“LifeKit”, “we”, “us”), collects when you use the
@@ -81,6 +82,7 @@ const PRIVACY = {
         'Stripe — payment processing and provider payouts.',
         'Google (Gemini API) — processes the text you submit to AI features in order to generate a response.',
         'Resend — delivery of transactional emails.',
+        'Google Firebase Cloud Messaging — delivers push notifications to your device using a device token.',
         'OpenStreetMap (Overpass API) — receives map coordinates to look up nearby places; no account information is sent.',
         'Authorities or other parties when required by law, to enforce our Terms, or to protect the rights and safety of users and the public.',
         'A successor entity if LifeKit is involved in a merger, acquisition or sale of assets, subject to this policy.',
