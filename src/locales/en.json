@@ -1,4 +1,4 @@
-﻿{
+{
   "nav": {
     "features": "Features",
     "process": "How It Works",
@@ -6,28 +6,32 @@
     "testimonials": "Testimonials",
     "signIn": "Sign In",
     "joinAsProvider": "Join as Provider",
-    "faq": "FAQ"
+    "faq": "FAQ",
+    "explore": "Explore",
+    "communities": "Communities",
+    "places": "Places",
+    "forProviders": "For Providers",
+    "about": "About"
   },
   "hero": {
-    "titlePart1": "Your services,",
-    "titlePart2": "without the busywork.",
-    "flipWord1": "booked",
-    "flipWord2": "paid",
-    "flipWord3": "noticed",
-    "flipWord4": "growing",
-    "subtitle": "LifeKit helps you settle in, earn, and meet the right people wherever you land.",
-    "ctaPrimary": "Get Early Access",
-    "ctaSecondary": "See how it works",
-    "note": "No credit card needed · Available globally",
+    "titlePart1": "Your life,",
+    "flipWord1": "Connected",
+    "flipWord2": "Simplified",
+    "flipWord3": "Supported",
+    "flipWord4": "Enriched",
+    "subtitle": "Discover services, connect with people, join communities and explore opportunities that make everyday life easier, wherever you are.",
+    "ctaPrimary": "Explore LifeKit",
+    "ctaSecondary": "Are you a service provider? Get early access →",
+    "note": "Free to join · The LifeKit app is coming soon to iPhone and Android",
     "mockupName": "Gracy",
     "mockupRole": "Life Assistant",
-    "mockupMessage": "You just moved to Lisbon. Here's your first week plan.",
+    "mockupMessage": "Hi! I'm Gracy. Looking for something? I can help you find services, communities and places on LifeKit.",
     "mockupQuickActions": "Quick Actions",
-    "mockupAction1": "Find coworking",
-    "mockupAction2": "Meet locals",
-    "mockupAction3": "Open a bank account",
+    "mockupAction1": "Find a service",
+    "mockupAction2": "Join a community",
+    "mockupAction3": "Explore places",
     "mockupInput": "Ask Gracy anything...",
-    "mockupNearby": "2 people near you · tap to view"
+    "mockupNearby": "New communities near you"
   },
   "stats": {
     "commissionLabel": "Commission for your first 90 days",
@@ -38,40 +42,41 @@
     "swapValue": "Unlimited"
   },
   "process": {
-    "label": "The Process",
-    "title": "From landed to settled in three moves.",
-    "step1Title": "Ask Gracy",
-    "step1Desc": "Tell Gracy where you are, what you need, and what you can offer. She listens like a person, not a search engine.",
-    "step2Title": "Discover",
-    "step2Desc": "Gracy shows services, opportunities, and communities that fit your situation, instead of another generic feed.",
-    "step3Title": "Connect & Earn",
-    "step3Desc": "Book services, swap skills, join your people. Start building a life that works."
+    "label": "How LifeKit works",
+    "title": "Three simple steps.",
+    "step1Title": "Discover",
+    "step1Desc": "Find services, people, communities and opportunities relevant to you.",
+    "step2Title": "Connect",
+    "step2Desc": "Connect with service providers, individuals and communities.",
+    "step3Title": "Get Things Done",
+    "step3Desc": "Access the services and connections you need to make everyday life easier."
   },
   "features": {
-    "label": "What's Inside",
-    "title": "Everything you need. Nothing you don't.",
-    "f1Title": "Life Assistant (Gracy)",
-    "f1Desc": "A practical assistant for finding services, answering questions, and planning your next move wherever you land.",
-    "f2Title": "Service Marketplace",
-    "f2Desc": "Book trusted local services in seconds, or list your own and get discovered by people who need you.",
-    "f3Title": "Skill Swap",
-    "f3Desc": "Trade your skills with others without spending money. A haircut for a lesson, design for cooking. Always free.",
-    "f4Title": "Communities",
-    "f4Desc": "Find your people. Join local hubs, share tips, get referrals, and build connections that actually help."
+    "label": "What you can do",
+    "title": "What you can do with LifeKit",
+    "f1Title": "Discover Services",
+    "f1Desc": "Find useful services and connect with service providers who can help with your needs.",
+    "f2Title": "Find Your Community",
+    "f2Desc": "Join communities, meet people and connect with others who share your interests and experiences.",
+    "f3Title": "Explore Places",
+    "f3Desc": "Discover useful places, local businesses and resources around you.",
+    "f4Title": "Discover Opportunities",
+    "f4Desc": "Explore opportunities to connect, learn, exchange skills and grow.",
+    "note": "All four are part of the LifeKit app, which is coming soon to iPhone and Android."
   },
   "scenarios": {
     "label": "Who It's For",
     "title": "Wherever you're starting from.",
     "imagePlaceholder": "Add your image here",
     "s1Label": "Scenario 01",
-    "s1Title": "Just landed in a new city?",
-    "s1Desc": "Gracy helps with your first week, from SIM cards and coworking spaces to people worth meeting.",
+    "s1Title": "New to a city?",
+    "s1Desc": "Find the services, places and communities that help you settle in.",
     "s2Label": "Scenario 02",
-    "s2Title": "Want to earn while you settle?",
-    "s2Desc": "The Opportunity Engine matches your skills with demand nearby. No job board scrolling.",
+    "s2Title": "Have a skill to share?",
+    "s2Desc": "Swap skills with others, or offer your services to people nearby.",
     "s3Label": "Scenario 03",
     "s3Title": "Ready to meet your people?",
-    "s3Desc": "Communities built for where you are and what you care about. Not another Discord to get lost in."
+    "s3Desc": "Join communities built around where you are and what you care about."
   },
   "bookings": {
     "sectionLabel": "Bookings",
@@ -81,7 +86,7 @@
     "feature1Title": "Multi-service cart",
     "feature1Desc": "Customers can book multiple services from multiple providers in a single checkout.",
     "feature2Title": "Escrow protection",
-    "feature2Desc": "Funds are held securely until the service is delivered. You get paid, guaranteed.",
+    "feature2Desc": "Payment is held until the service is delivered and confirmed, then released to you. If there's a problem, our team reviews it.",
     "feature3Title": "Fixed and hourly pricing",
     "feature3Desc": "Set a flat rate or charge per hour, and the app handles the maths for you."
   },
@@ -119,19 +124,18 @@
     "t3Role": "Photographer · Manchester"
   },
   "finalCta": {
-    "badge": "Start Today",
-    "title1": "Start building your",
-    "title2": "life anywhere.",
-    "subtitle": "Join LifeKit as one of our first providers — list your services in minutes and start getting booked.",
-    "ctaPrimary": "Get Early Access",
-    "note": "Free to join · No card required · Available worldwide"
+    "badge": "Start today",
+    "title1": "Your next chapter starts here.",
+    "subtitle": "Discover a more connected way to navigate life.",
+    "ctaPrimary": "Explore LifeKit",
+    "note": "Free to join · Get notified when the app launches"
   },
   "footer": {
-    "tagline": "A service ecosystem where skilled providers can earn, swap, and grow together.",
+    "tagline": "One connected platform for the services, people, communities and opportunities that make everyday life easier.",
     "comingSoon": "Coming Soon",
     "providersHeading": "Providers",
     "companyHeading": "Company",
-    "link1": "Become a Provider",
+    "link1": "For Providers",
     "link2": "Skill Swap",
     "link3": "Smart Tools",
     "link4": "Help & Contact",
@@ -496,7 +500,7 @@
     "label": "Questions",
     "title": "Everything you need to know.",
     "q1": "What is LifeKit?",
-    "a1": "LifeKit is a marketplace and community where you can book trusted local services, offer your own skills, swap skills with others and join communities — with Gracia, our AI assistant, to help along the way.",
+    "a1": "LifeKit is one place to discover services, connect with people, join communities and explore opportunities. You can book local services, offer your own skills, swap skills with others and join communities, with Gracy, our guide, to help you find your way.",
     "q2": "How much does it cost?",
     "a2": "Joining is free. Providers pay a small commission only on completed paid bookings: 3% during your first 90 days, then 8%. Optional paid plans unlock extra tools.",
     "q3": "How do providers get paid?",
@@ -524,5 +528,76 @@
     "error": "Something went wrong. Please try again.",
     "invalid": "Please enter a valid email address.",
     "privacy": "We'll only use your email to tell you about the launch. Unsubscribe anytime."
+  },
+  "providerHero": {
+    "titlePart1": "Your services,",
+    "titlePart2": "without the busywork.",
+    "flipWord1": "booked",
+    "flipWord2": "paid",
+    "flipWord3": "noticed",
+    "flipWord4": "growing",
+    "subtitle": "LifeKit helps you settle in, earn, and meet the right people wherever you land.",
+    "ctaPrimary": "Get Early Access",
+    "ctaSecondary": "See how bookings work",
+    "note": "No credit card needed · 3% commission for your first 90 days",
+    "mockupRole": "Life Assistant",
+    "mockupMessage": "You just moved to Lisbon. Here's your first week plan.",
+    "mockupQuickActions": "Quick Actions",
+    "mockupAction1": "Find coworking",
+    "mockupAction2": "Meet locals",
+    "mockupAction3": "Open a bank account",
+    "mockupInput": "Ask Gracy anything...",
+    "mockupNearby": "2 people near you · tap to view"
+  },
+  "intro": {
+    "label": "About LifeKit",
+    "title": "Everything you need. Nothing you don't.",
+    "text": "LifeKit brings the services, people, communities and opportunities you need into one connected platform. Whether you're settling into a new place or simply navigating everyday life, LifeKit helps you find what you need and connect with the right people."
+  },
+  "gracy": {
+    "label": "Your guide",
+    "title": "Meet Gracy. Your guide to LifeKit.",
+    "text": "Need help finding something? Gracy helps you navigate LifeKit, discover relevant services and explore useful resources.",
+    "note": "Gracy is still learning, and she'll keep getting more helpful as LifeKit grows.",
+    "bubble": "Hi! What are you looking for today? I can point you to services, communities and places on LifeKit.",
+    "chip1": "Find a service",
+    "chip2": "Explore communities",
+    "chip3": "Discover places"
+  },
+  "trust": {
+    "label": "Trust & safety",
+    "title": "How we keep LifeKit fair.",
+    "comingSoon": "Coming soon",
+    "intro": "LifeKit is a growing community and we're building trust features step by step. Here's how things work today.",
+    "i1Title": "How service providers are reviewed",
+    "i1Desc": "Our team can review service listings and remove any that break our rules. After each completed booking, clients rate the provider, so you can see how others found them.",
+    "i2Title": "What provider verification means",
+    "i2Desc": "We're working on provider identity checks. Until verification is live, a listing on LifeKit doesn't confirm a provider's identity or qualifications, so check their reviews and message them before you book.",
+    "i3Title": "How to leave a review",
+    "i3Desc": "Once a booking is completed, the client and the provider can each rate the other from 1 to 5 stars and add a comment.",
+    "i4Title": "How to report a concern",
+    "i4Desc": "You can report a person or content in the app, or block someone so they can't contact you. Our team looks at reports and can remove content or suspend accounts.",
+    "i5Title": "How complaints and disputes are handled",
+    "i5Desc": "If a booking goes wrong, either side can report an issue from the booking. Payment stays on hold while our team looks at what happened and decides whether to refund the client or pay the provider.",
+    "disclaimer": "LifeKit is a platform that connects people. We can't guarantee the quality of every service or the outcome of every booking, but we take every report seriously and will look into problems you raise."
+  },
+  "providerCta": {
+    "label": "For service providers",
+    "title": "Have a service to offer? Grow with LifeKit.",
+    "text": "Connect with people looking for the services you provide, increase your visibility and grow your customer base through LifeKit.",
+    "cta": "Get Early Access",
+    "learnMore": "See how LifeKit works for providers",
+    "p1": "Reach potential new customers.",
+    "p2": "Increase your service visibility.",
+    "p3": "Build your presence on LifeKit.",
+    "p4": "Connect with a growing community."
+  },
+  "providerFinalCta": {
+    "badge": "Early access",
+    "title1": "Grow your services",
+    "title2": "with LifeKit.",
+    "subtitle": "Join LifeKit as one of our first providers — list your services in minutes and start getting booked.",
+    "ctaPrimary": "Get Early Access",
+    "note": "Free to join · No card required"
   }
 }

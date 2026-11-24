@@ -10,7 +10,7 @@ import { ContainerTextFlip } from '../components/ui/container-text-flip'
 import {
   ArrowRight, ArrowUp, Star, Users, Calendar,
   Repeat2, Clock, Shield, Store, Sparkles, Menu, X,
-  ChevronDown, Mail, Check, Smartphone
+  ChevronDown, Mail, Check, Smartphone, MapPin, Compass, Flag, MessageSquare, Scale, BadgeCheck
 } from 'lucide-react'
 
 gsap.registerPlugin(ScrollTrigger, useGSAP)
@@ -259,11 +259,13 @@ function Navbar() {
     return () => { document.body.style.overflow = '' }
   }, [open])
 
+  // Absolute "/#..." anchors so the links also work from the providers page.
   const links = [
-    { href: '#features',     label: t('nav.features')     },
-    { href: '#process',      label: t('nav.process')      },
-    { href: '#aiTools',      label: t('nav.aiTools')      },
-    { href: '#faq', label: t('nav.faq') },
+    { href: '/#explore',     label: t('nav.explore')      },
+    { href: '/#communities', label: t('nav.communities')  },
+    { href: '/#places',      label: t('nav.places')       },
+    { href: '/providers',    label: t('nav.forProviders') },
+    { href: '/#about',       label: t('nav.about')        },
   ]
 
   return (
@@ -393,15 +395,19 @@ function Navbar() {
 // ─────────────────────────────────────────────────────────────────────────────
 // Hero
 // ─────────────────────────────────────────────────────────────────────────────
-function Hero() {
-  const { t } = useTranslation()
+function Hero({ ns = 'hero', primaryHref = '#explore', primaryIsRoute = false, secondaryHref = '/providers', secondaryIsRoute = true }) {
+  const { t, i18n } = useTranslation()
+  const k = (key) => t(`${ns}.${key}`)
+  const has = (key) => i18n.exists(`${ns}.${key}`)
 
   const flipWords = [
-    t('hero.flipWord1'),
-    t('hero.flipWord2'),
-    t('hero.flipWord3'),
-    t('hero.flipWord4'),
+    k('flipWord1'),
+    k('flipWord2'),
+    k('flipWord3'),
+    k('flipWord4'),
   ]
+  const PrimaryTag = primaryIsRoute ? Link : 'a'
+  const SecondaryTag = secondaryIsRoute ? Link : 'a'
 
   const headlineContainer = {
     hidden: {},
@@ -429,7 +435,7 @@ function Hero() {
           >
             <span className="block">
               <Motion.span className="inline-block" variants={wordVariant}>
-                {t('hero.titlePart1')}
+                {k('titlePart1')}
               </Motion.span>{' '}
               <ContainerTextFlip
                 words={flipWords}
@@ -438,9 +444,11 @@ function Hero() {
                 textClassName="px-1"
               />
             </span>
-            <Motion.span className="block mt-3" variants={wordVariant}>
-              {t('hero.titlePart2')}
-            </Motion.span>
+            {has('titlePart2') && (
+              <Motion.span className="block mt-3" variants={wordVariant}>
+                {k('titlePart2')}
+              </Motion.span>
+            )}
           </Motion.h1>
 
           <Motion.p
@@ -449,7 +457,7 @@ function Hero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 1.05, ease: [0.16, 1, 0.3, 1] }}
           >
-            {t('hero.subtitle')}
+            {k('subtitle')}
           </Motion.p>
 
           <Motion.div
@@ -458,20 +466,20 @@ function Hero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.6 }}
           >
-            <Link
-              to="/register"
-              className="inline-flex items-center justify-center gap-2 px-7 py-4 rounded-xl text-white text-[15px] font-semibold hover:opacity-90 hover:shadow-lg transition-all"
+            <PrimaryTag
+              {...(primaryIsRoute ? { to: primaryHref } : { href: primaryHref })}
+              className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl text-white text-[16px] font-bold hover:opacity-90 hover:shadow-lg transition-all"
               style={{ backgroundColor: P }}
             >
-              {t('hero.ctaPrimary')}
+              {k('ctaPrimary')}
               <ArrowRight size={16} />
-            </Link>
-            <a
-              href="#process"
-              className="inline-flex items-center gap-1.5 text-[15px] font-semibold text-gray-700 underline underline-offset-4 decoration-gray-300 hover:decoration-gray-600 transition-colors"
+            </PrimaryTag>
+            <SecondaryTag
+              {...(secondaryIsRoute ? { to: secondaryHref } : { href: secondaryHref })}
+              className="inline-flex items-center gap-1.5 text-[14px] font-medium text-gray-500 underline underline-offset-4 decoration-gray-300 hover:text-gray-800 hover:decoration-gray-600 transition-colors"
             >
-              {t('hero.ctaSecondary')} →
-            </a>
+              {k('ctaSecondary')}
+            </SecondaryTag>
           </Motion.div>
 
           <Motion.p
@@ -480,7 +488,7 @@ function Hero() {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.95 }}
           >
-            {t('hero.note')}
+            {k('note')}
           </Motion.p>
         </div>
 
@@ -603,7 +611,7 @@ function ProcessSection() {
   useScrollReveal(gridRef, { stagger: 0.2 })
 
   return (
-    <section id="process" className="py-24 px-5 sm:px-8 bg-gray-50">
+    <section id="process" className="py-24 px-5 sm:px-8 bg-gray-50 scroll-mt-20">
       <div className="max-w-7xl mx-auto">
         <Fade className="mb-16">
           <span className="block text-[10px] font-extrabold uppercase tracking-widest mb-4" style={{ color: P }}>
@@ -656,16 +664,16 @@ function FeaturesSection() {
   const gridRef = useRef(null)
 
   const cards = [
-    { title: t('features.f1Title'), desc: t('features.f1Desc'), Icon: Sparkles },
-    { title: t('features.f2Title'), desc: t('features.f2Desc'), Icon: Store },
-    { title: t('features.f3Title'), desc: t('features.f3Desc'), Icon: Repeat2 },
-    { title: t('features.f4Title'), desc: t('features.f4Desc'), Icon: Users },
+    { id: 'services',      title: t('features.f1Title'), desc: t('features.f1Desc'), Icon: Store },
+    { id: 'communities',   title: t('features.f2Title'), desc: t('features.f2Desc'), Icon: Users },
+    { id: 'places',        title: t('features.f3Title'), desc: t('features.f3Desc'), Icon: MapPin },
+    { id: 'opportunities', title: t('features.f4Title'), desc: t('features.f4Desc'), Icon: Compass },
   ]
 
   useScrollReveal(gridRef, { stagger: 0.12 })
 
   return (
-    <section id="features" className="py-24 px-5 sm:px-8">
+    <section id="explore" className="py-24 px-5 sm:px-8 scroll-mt-20">
       <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-12 lg:gap-16">
         {/* Heading: left */}
         <Fade className="lg:w-80 shrink-0">
@@ -675,12 +683,13 @@ function FeaturesSection() {
           <h2 className="text-4xl sm:text-5xl font-extrabold text-gray-900 leading-tight">
             {t('features.title')}
           </h2>
+          <p className="mt-5 text-sm text-gray-400 leading-relaxed">{t('features.note')}</p>
         </Fade>
 
         {/* Grid: right */}
         <div ref={gridRef} className="flex-1 grid sm:grid-cols-2 gap-5">
-          {cards.map(({ title, desc, Icon }) => (
-            <div key={title} className="reveal-item h-full">
+          {cards.map(({ id, title, desc, Icon }) => (
+            <div key={id} id={id} className="reveal-item h-full scroll-mt-24">
               <div className="flex flex-col bg-white rounded-2xl border border-gray-100 p-7 h-full min-h-[14rem] hover:shadow-md transition-shadow cursor-default">
                 <div
                   className="w-10 h-10 rounded-xl flex items-center justify-center mb-auto"
@@ -784,6 +793,7 @@ function ScenariosSection() {
 // ─────────────────────────────────────────────────────────────────────────────
 function BookingsSection() {
   const { t } = useTranslation()
+  // (id="bookings" is set on the section below for the provider hero link)
 
   const items = [
     { Icon: Calendar, title: t('bookings.feature1Title'), desc: t('bookings.feature1Desc') },
@@ -792,7 +802,7 @@ function BookingsSection() {
   ]
 
   return (
-    <section className="py-24 px-5 sm:px-8">
+    <section id="bookings" className="py-24 px-5 sm:px-8 scroll-mt-20">
       <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-16 lg:gap-24">
 
         {/* Left: text */}
@@ -835,7 +845,7 @@ function BookingsSection() {
               className="inline-flex items-center gap-2 mt-10 px-6 py-3.5 rounded-xl text-white text-sm font-semibold hover:opacity-90 transition-opacity"
               style={{ backgroundColor: P }}
             >
-              {t('hero.ctaPrimary')}
+              {t('providerHero.ctaPrimary')}
               <ArrowRight size={15} />
             </Link>
           </Fade>
@@ -959,6 +969,165 @@ function AiToolsSection() {
 // ─────────────────────────────────────────────────────────────────────────────
 // Testimonials
 // ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Intro / value proposition
+// ─────────────────────────────────────────────────────────────────────────────
+function IntroSection() {
+  const { t } = useTranslation()
+  return (
+    <section id="about" className="py-24 px-5 sm:px-8 bg-gray-50 scroll-mt-20">
+      <Fade className="max-w-3xl mx-auto text-center">
+        <span className="block text-[10px] font-extrabold uppercase tracking-widest mb-4" style={{ color: P }}>
+          {t('intro.label')}
+        </span>
+        <h2 className="text-4xl sm:text-5xl font-extrabold text-gray-900 leading-tight mb-6">
+          {t('intro.title')}
+        </h2>
+        <p className="text-lg text-gray-500 leading-relaxed">{t('intro.text')}</p>
+      </Fade>
+    </section>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Meet Gracy
+// ─────────────────────────────────────────────────────────────────────────────
+function GracySection() {
+  const { t } = useTranslation()
+  const chips = [t('gracy.chip1'), t('gracy.chip2'), t('gracy.chip3')]
+  return (
+    <section id="gracy" className="py-24 px-5 sm:px-8 bg-gray-50 scroll-mt-20">
+      <div className="max-w-6xl mx-auto flex flex-col lg:flex-row items-center gap-14">
+        <Fade className="flex-1">
+          <span className="block text-[10px] font-extrabold uppercase tracking-widest mb-4" style={{ color: P }}>
+            {t('gracy.label')}
+          </span>
+          <h2 className="text-4xl sm:text-5xl font-extrabold text-gray-900 leading-tight mb-6">
+            {t('gracy.title')}
+          </h2>
+          <p className="text-lg text-gray-500 leading-relaxed mb-4 max-w-xl">{t('gracy.text')}</p>
+          <p className="text-sm text-gray-400 max-w-xl">{t('gracy.note')}</p>
+        </Fade>
+        <Fade delay={120} className="flex-1 w-full max-w-md">
+          <Motion.div
+            whileHover={{ y: -6 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 22 }}
+            className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6"
+          >
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-11 h-11 rounded-full flex items-center justify-center text-white font-extrabold" style={{ background: `linear-gradient(135deg, ${P}, #c0485f)` }}>G</div>
+              <div>
+                <p className="text-sm font-bold text-gray-900">{t('hero.mockupName')}</p>
+                <p className="text-xs text-gray-400">{t('hero.mockupRole')}</p>
+              </div>
+            </div>
+            <div className="rounded-2xl rounded-tl-sm px-4 py-3 mb-5 text-sm text-gray-700 leading-relaxed" style={{ backgroundColor: `${P}0d` }}>
+              {t('gracy.bubble')}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {chips.map((c) => (
+                <span key={c} className="text-xs font-semibold px-3 py-2 rounded-full border" style={{ color: P, borderColor: `${P}33` }}>{c}</span>
+              ))}
+            </div>
+          </Motion.div>
+        </Fade>
+      </div>
+    </section>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Trust & safety
+// ─────────────────────────────────────────────────────────────────────────────
+function TrustSection() {
+  const { t } = useTranslation()
+  const gridRef = useRef(null)
+  useScrollReveal(gridRef, { stagger: 0.1 })
+  const items = [
+    { Icon: Shield,        title: t('trust.i1Title'), desc: t('trust.i1Desc') },
+    { Icon: BadgeCheck,    title: t('trust.i2Title'), desc: t('trust.i2Desc'), soon: true },
+    { Icon: Star,          title: t('trust.i3Title'), desc: t('trust.i3Desc') },
+    { Icon: Flag,          title: t('trust.i4Title'), desc: t('trust.i4Desc') },
+    { Icon: Scale,         title: t('trust.i5Title'), desc: t('trust.i5Desc') },
+  ]
+  return (
+    <section id="trust" className="py-24 px-5 sm:px-8 scroll-mt-20">
+      <div className="max-w-7xl mx-auto">
+        <Fade className="mb-14 max-w-2xl">
+          <span className="block text-[10px] font-extrabold uppercase tracking-widest mb-4" style={{ color: P }}>
+            {t('trust.label')}
+          </span>
+          <h2 className="text-4xl sm:text-5xl font-extrabold text-gray-900 leading-tight mb-5">{t('trust.title')}</h2>
+          <p className="text-gray-500 leading-relaxed">{t('trust.intro')}</p>
+        </Fade>
+        <div ref={gridRef} className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {items.map(({ Icon, title, desc, soon }) => (
+            <div key={title} className="reveal-item h-full">
+              <div className="bg-white rounded-2xl border border-gray-100 p-7 h-full hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${P}10` }}>
+                    {createElement(Icon, { size: 18, color: P })}
+                  </div>
+                  {soon && (
+                    <span className="text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-full bg-amber-50 text-amber-700">
+                      {t('trust.comingSoon')}
+                    </span>
+                  )}
+                </div>
+                <h3 className="text-[15px] font-bold mb-2 leading-snug" style={{ color: P }}>{title}</h3>
+                <p className="text-sm text-gray-500 leading-relaxed">{desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="mt-8 text-xs text-gray-400 max-w-3xl leading-relaxed">{t('trust.disclaimer')}</p>
+      </div>
+    </section>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Service provider early access (homepage)
+// ─────────────────────────────────────────────────────────────────────────────
+function ProviderCtaSection() {
+  const { t } = useTranslation()
+  const points = [t('providerCta.p1'), t('providerCta.p2'), t('providerCta.p3'), t('providerCta.p4')]
+  return (
+    <section id="providers" className="py-24 px-5 sm:px-8 scroll-mt-20">
+      <div className="max-w-6xl mx-auto rounded-3xl p-8 sm:p-14 flex flex-col lg:flex-row gap-10 lg:items-center" style={{ backgroundColor: `${P}08`, border: `1px solid ${P}1a` }}>
+        <Fade className="flex-1">
+          <span className="block text-[10px] font-extrabold uppercase tracking-widest mb-4" style={{ color: P }}>
+            {t('providerCta.label')}
+          </span>
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 leading-tight mb-5">{t('providerCta.title')}</h2>
+          <p className="text-gray-500 leading-relaxed mb-8 max-w-xl">{t('providerCta.text')}</p>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <Link to="/register" className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl text-white font-semibold hover:opacity-90 transition-opacity" style={{ backgroundColor: P }}>
+              {t('providerCta.cta')}
+              <ArrowRight size={16} />
+            </Link>
+            <Link to="/providers" className="text-sm font-semibold text-gray-600 underline underline-offset-4 decoration-gray-300 hover:text-gray-900">
+              {t('providerCta.learnMore')}
+            </Link>
+          </div>
+        </Fade>
+        <Fade delay={120} className="lg:w-96">
+          <ul className="space-y-4">
+            {points.map((p) => (
+              <li key={p} className="flex items-start gap-3">
+                <span className="mt-0.5 w-6 h-6 rounded-full flex items-center justify-center text-white shrink-0" style={{ backgroundColor: P }}>
+                  <Check size={14} />
+                </span>
+                <span className="text-gray-700 font-medium">{p}</span>
+              </li>
+            ))}
+          </ul>
+        </Fade>
+      </div>
+    </section>
+  )
+}
+
 const CONTACT_EMAIL = 'hello@lifekithub.com'
 const API_BASE = import.meta.env.VITE_API_URL
 
@@ -1112,8 +1281,11 @@ function WaitlistSection() {
 // ─────────────────────────────────────────────────────────────────────────────
 // Final CTA (maroon gradient)
 // ─────────────────────────────────────────────────────────────────────────────
-function FinalCta() {
-  const { t } = useTranslation()
+function FinalCta({ ns = 'finalCta', primaryHref = '#get-app', primaryIsRoute = false, showProviderLink = true }) {
+  const { t, i18n } = useTranslation()
+  const k = (key) => t(`${ns}.${key}`)
+  const has = (key) => i18n.exists(`${ns}.${key}`)
+  const PrimaryTag = primaryIsRoute ? Link : 'a'
 
   return (
     <section
@@ -1125,28 +1297,33 @@ function FinalCta() {
       <div className="max-w-3xl mx-auto text-center">
         <Fade>
           <span className="inline-block text-[10px] font-extrabold uppercase tracking-[0.2em] text-white/55 mb-7">
-            {t('finalCta.badge')}
+            {k('badge')}
           </span>
           <h2 className="text-5xl sm:text-6xl font-extrabold text-white leading-[1.05] tracking-tight mb-6">
-            {t('finalCta.title1')}<br />
-            {t('finalCta.title2')}
+            {k('title1')}
+            {has('title2') && (<><br />{k('title2')}</>)}
           </h2>
           <p className="text-white/70 text-lg max-w-xl mx-auto mb-10 leading-relaxed">
-            {t('finalCta.subtitle')}
+            {k('subtitle')}
           </p>
 
           <div className="flex justify-center mb-8">
-            <Link
-              to="/register"
+            <PrimaryTag
+              {...(primaryIsRoute ? { to: primaryHref } : { href: primaryHref })}
               className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full bg-white font-semibold hover:opacity-90 hover:shadow-xl transition-all"
               style={{ color: P }}
             >
-              {t('finalCta.ctaPrimary')}
+              {k('ctaPrimary')}
               <ArrowRight size={16} />
-            </Link>
+            </PrimaryTag>
           </div>
 
-          <p className="text-white/50 text-sm">{t('finalCta.note')}</p>
+          <p className="text-white/50 text-sm">{k('note')}</p>
+          {showProviderLink && (
+            <Link to="/providers" className="inline-block mt-5 text-white/80 text-sm font-medium underline underline-offset-4 decoration-white/30 hover:text-white">
+              {t('hero.ctaSecondary')}
+            </Link>
+          )}
         </Fade>
       </div>
     </section>
@@ -1188,7 +1365,7 @@ function Footer() {
               <ul className="space-y-3">
                 {[1, 2, 3, 4].map(n => (
                   <li key={n}>
-                    <a href={({ 1: '/register', 2: '#features', 3: '#aiTools', 4: `mailto:${CONTACT_EMAIL}` })[n]} className="text-sm text-gray-400 hover:text-gray-900 transition-colors">
+                    <a href={({ 1: '/providers', 2: '/#opportunities', 3: '/providers#aiTools', 4: `mailto:${CONTACT_EMAIL}` })[n]} className="text-sm text-gray-400 hover:text-gray-900 transition-colors">
                       {t(`footer.link${n}`)}
                     </a>
                   </li>
@@ -1202,7 +1379,7 @@ function Footer() {
               <ul className="space-y-3">
                 {[5, 8, 9].map(n => (
                   <li key={n}>
-                    <a href={({ 5: '#process', 8: '/privacy', 9: '/terms' })[n]} className="text-sm text-gray-400 hover:text-gray-900 transition-colors">
+                    <a href={({ 5: '/#process', 8: '/privacy', 9: '/terms' })[n]} className="text-sm text-gray-400 hover:text-gray-900 transition-colors">
                       {t(`footer.link${n}`)}
                     </a>
                   </li>
@@ -1242,15 +1419,38 @@ export default function LandingPage() {
     <div className="min-h-screen">
       <Navbar />
       <Hero />
-      <StatsBar />
-      <ProcessSection />
+      <IntroSection />
       <FeaturesSection />
+      <ProcessSection />
       <ScenariosSection />
-      <BookingsSection />
-      <AiToolsSection />
+      <GracySection />
+      <TrustSection />
+      <ProviderCtaSection />
       <FaqSection />
       <WaitlistSection />
       <FinalCta />
+      <Footer />
+    </div>
+  )
+}
+
+/** Service providers: tools, bookings, commission and early access. */
+export function ProvidersPage() {
+  useEffect(() => {
+    // Arriving at /providers#aiTools should land on that section.
+    const id = window.location.hash.slice(1)
+    if (id) setTimeout(() => document.getElementById(id)?.scrollIntoView(), 300)
+    else window.scrollTo(0, 0)
+  }, [])
+  return (
+    <div className="min-h-screen">
+      <Navbar />
+      <Hero ns="providerHero" primaryHref="/register" primaryIsRoute secondaryHref="#bookings" secondaryIsRoute={false} />
+      <StatsBar />
+      <BookingsSection />
+      <AiToolsSection />
+      <FaqSection />
+      <FinalCta ns="providerFinalCta" primaryHref="/register" primaryIsRoute showProviderLink={false} />
       <Footer />
     </div>
   )
