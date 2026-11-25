@@ -1,5 +1,14 @@
 {
   "rewrites": [
+    { "source": "/services", "destination": "https://lifekitbackend.vercel.app/public/services" },
+    { "source": "/services.json", "destination": "https://lifekitbackend.vercel.app/public/services.json" },
+    { "source": "/providers", "destination": "/providers/index.html" },
+    { "source": "/privacy", "destination": "/privacy/index.html" },
+    { "source": "/terms", "destination": "/terms/index.html" },
+    { "source": "/delete-account", "destination": "/delete-account/index.html" },
     { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "headers": [
+    { "source": "/llms.txt", "headers": [{ "key": "Content-Type", "value": "text/plain; charset=utf-8" }] }
   ]
 }
