@@ -69,7 +69,9 @@ function useInView(threshold = 0.12) {
     const el = ref.current
     if (!el) return
     const obs = new IntersectionObserver(
-      ([e]) => { if (e.isIntersecting) { setVisible(true); obs.disconnect() } },
+      // Also reveal sections already scrolled past (menu jumps, fast flicks),
+      // so nothing stays invisible above the viewport.
+      ([e]) => { if (e.isIntersecting || e.boundingClientRect.top < 0) { setVisible(true); obs.disconnect() } },
       { threshold }
     )
     obs.observe(el)
