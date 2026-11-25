@@ -117,7 +117,7 @@ function PhoneMockup({ children }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Hero right: dashboard mockup card
 // ─────────────────────────────────────────────────────────────────────────────
-function GraciaChatMockup() {
+function GracyChatMockup() {
   const { t } = useTranslation()
   const quickActions = [
     t('hero.mockupAction1'),
@@ -499,7 +499,7 @@ function Hero({ ns = 'hero', primaryHref = '#explore', primaryIsRoute = false, s
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: 'spring', stiffness: 120, damping: 18, delay: 0.5 }}
         >
-          <GraciaChatMockup />
+          <GracyChatMockup />
         </Motion.div>
       </div>
     </section>
