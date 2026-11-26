@@ -305,7 +305,7 @@ export default function LoginPage() {
 
           <div className="mt-10 grid grid-cols-3 gap-4">
             {[
-              { icon: <Percent size={18} />, value: '3%', label: t('login.statProviders') },
+              { icon: <Percent size={18} />, value: '0%', label: t('login.statProviders') },
               { icon: <Clock size={18} />, value: '< 5 min', label: t('login.statRating') },
               { icon: <Globe size={18} />, value: '3', label: t('login.statEarnings') },
             ].map((s) => (

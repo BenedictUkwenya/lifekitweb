@@ -516,7 +516,7 @@ function StatsBar() {
   const scope = useRef(null)
 
   const stats = [
-    { value: '3%',                 label: t('stats.commissionLabel') },
+    { value: '0%',                 label: t('stats.commissionLabel') },
     { value: '5',                  label: t('stats.aiFeaturesLabel') },
     { value: t('stats.timeValue'), label: t('stats.timeLabel')   },
     { value: t('stats.swapValue'), label: t('stats.swapLabel')   },

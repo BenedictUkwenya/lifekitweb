@@ -1325,12 +1325,20 @@ function OverviewTab({ profile, wallet, services, bookings, incomingSwaps, outgo
           style={{ background: `linear-gradient(135deg, ${PRIMARY} 0%, #5B1A28 100%)` }}>
           <div className="absolute -right-10 -top-10 w-36 h-36 rounded-full bg-white/10" />
           <div className="relative">
+            {/* LifeKit doesn't take payments yet: clients pay providers directly,
+                so show what completed bookings earned instead of a wallet. */}
             <p className="text-xs font-bold uppercase tracking-wider text-white/70 flex items-center gap-2">
-              <DollarSign size={14} /> {t('dashboard.walletBalance')}
+              <DollarSign size={14} /> {t(wallet?.in_app_payments ? 'dashboard.walletBalance' : 'dashboard.earnedDirect')}
             </p>
-            <p className="text-3xl font-extrabold mt-2">{wallet ? money(wallet.balance) : '—'}</p>
+            <p className="text-3xl font-extrabold mt-2">
+              {wallet?.in_app_payments
+                ? money(wallet.balance)
+                : money(bookings
+                    .filter((b) => (b.status || '').toLowerCase() === 'completed')
+                    .reduce((sum, b) => sum + Number(b.total_price || 0), 0))}
+            </p>
           </div>
-          <p className="relative text-xs text-white/70 mt-4 leading-relaxed">{t('dashboard.walletHint')}</p>
+          <p className="relative text-xs text-white/70 mt-4 leading-relaxed">{t(wallet?.in_app_payments ? 'dashboard.walletHint' : 'dashboard.earnedDirectHint')}</p>
         </div>
       </div>
 

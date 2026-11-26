@@ -21,7 +21,7 @@ const mail = <a href={`mailto:${CONTACT_EMAIL}`} className="text-[#89273B] under
 
 const PRIVACY = {
   title: 'Privacy Policy',
-  updated: 'November 4, 2026',
+  updated: 'November 26, 2026',
   intro: (
     <>
       This policy explains what information {company} (“LifeKit”, “we”, “us”), collects when you use the
@@ -53,17 +53,18 @@ const PRIVACY = {
       h: 'Payments',
       p: (
         <>
-          Card payments, wallet top-ups and provider payouts are processed by Stripe. Your full card number is sent
-          directly to Stripe and never stored on our servers. We keep a record of transactions (amount, type, date,
-          status) and your LifeKit wallet balance. Providers who receive payouts complete identity verification with
-          Stripe Connect, under Stripe’s own privacy policy.
+          LifeKit does not currently process payments in the app: Clients pay Providers directly, outside LifeKit,
+          and we do not collect card or bank details for bookings. An earlier version of LifeKit had a wallet whose
+          card top-ups were processed by Stripe (your full card number went directly to Stripe and was never stored
+          on our servers). We keep the records of those wallet transactions (amount, type, date, status) and any
+          remaining wallet balance.
         </>
       ),
     },
     {
       h: 'How we use information',
       list: [
-        'To create and secure your account and provide the Service, including bookings, payments, wallet, messaging and communities.',
+        'To create and secure your account and provide the Service, including bookings, messaging, communities and records of past wallet transactions.',
         'To show your public profile, services, posts, reviews and ratings to other users.',
         'To send you service emails and in-app notifications (for example booking updates, password resets and receipts).',
         'To keep the community safe: reviewing reports, resolving disputes, and suspending accounts that break our Terms.',
@@ -79,7 +80,7 @@ const PRIVACY = {
         'Other users: information you make public (profile, services, posts, reviews) and, for a booking, the details the other party needs to complete it.',
         'Supabase — database, authentication and file storage.',
         'Vercel — hosting of our servers and website.',
-        'Stripe — payment processing and provider payouts.',
+        'Stripe — processed card top-ups for the wallet in an earlier version of LifeKit; no new payments are processed.',
         'Google (Gemini API) — processes the text you submit to AI features in order to generate a response.',
         'Resend — delivery of transactional emails.',
         'Google Firebase Cloud Messaging — delivers push notifications to your device using a device token.',
@@ -134,6 +135,7 @@ const PRIVACY = {
 
 const TERMS = {
   title: 'Terms of Service',
+  updated: 'November 26, 2026',
   intro: (
     <>
       These Terms govern your use of the LifeKit mobile app, website and related services (the “Service”) operated by{' '}
@@ -165,23 +167,22 @@ const TERMS = {
       ],
     },
     {
-      h: '4. Bookings, wallet and payments',
+      h: '4. Bookings and payments',
       list: [
-        'Payments are made from your LifeKit wallet, which you top up by card through Stripe. Wallet funds are not a bank deposit and do not earn interest.',
-        'When a Client books, the price is held from the Client’s wallet and released to the Provider after the booking is completed and confirmed.',
-        'LifeKit charges Providers a platform commission on completed paid bookings (currently 8%, or a reduced rate during promotional trial periods), deducted before funds are released. Current rates are shown in the app.',
-        'Providers withdraw earnings through Stripe Connect and must complete Stripe’s verification. Payout timing depends on Stripe and your bank.',
-        'Cancelled bookings are refunded to the Client’s wallet in accordance with the booking status and the cancellation rules shown in the app.',
-        'Event tickets include a service fee shown at checkout.',
+        'LifeKit does not currently take, hold or transfer payments. Clients pay Providers directly (for example in cash, by card or by bank transfer) on terms they agree between themselves, usually in the booking chat.',
+        'LifeKit is not a party to that payment. Any refund, deposit or cancellation fee is a matter between the Client and the Provider.',
+        'LifeKit currently charges no commission on bookings. If that changes, we will update these Terms and show the rates in the app before they apply.',
+        'Bookings made in an earlier version of LifeKit that were paid from a LifeKit wallet are settled under the rules that applied when they were made. Any wallet balance that is lawfully yours remains available to withdraw; contact us.',
+        'Event tickets are not sold in the app; any ticket price is paid at the event.',
       ],
     },
     {
       h: '5. Disputes',
-      p: 'If something goes wrong with a booking, either party can open a dispute in the app. Held funds stay frozen while LifeKit reviews the information both parties provide. LifeKit may decide to refund the Client or release payment to the Provider; this decision concerns the funds held on the platform and does not limit any other legal rights you may have.',
+      p: 'If something goes wrong with a booking, either party can open a dispute in the app. LifeKit reviews the information both parties provide and may close or cancel the booking, remove listings or content, or suspend accounts. Because Clients pay Providers directly, LifeKit cannot refund or release payments for those bookings. Our decision does not limit any other legal rights you may have.',
     },
     {
       h: '6. Subscriptions, boosts and paid features',
-      p: 'Paid plans, boosts and AI tools are charged from your wallet at the price shown before purchase and give access for the stated period. Except where required by law, these purchases are non-refundable once the feature has been activated.',
+      p: 'Paid plans, boosts and paid AI tools are not on sale at the moment. If they become available, the price and period will be shown before purchase, together with the applicable refund terms.',
     },
     {
       h: '7. Skill swaps',
@@ -197,7 +198,7 @@ const TERMS = {
       list: [
         'post content that is illegal, hateful, harassing, threatening, sexually explicit, violent, or that infringes others’ rights;',
         'impersonate anyone, post false reviews, or manipulate ratings;',
-        'spam, scam, or arrange payments outside LifeKit to avoid fees or protections;',
+        'spam or scam other members, including taking payment for a service you do not intend to deliver;',
         'offer illegal, dangerous or regulated services without the required licences;',
         'attempt to access accounts or systems you are not authorised to, or interfere with the Service.',
       ],
