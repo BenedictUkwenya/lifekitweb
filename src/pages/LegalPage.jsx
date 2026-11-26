@@ -54,7 +54,13 @@ const PRIVACY = {
       p: (
         <>
           LifeKit does not currently process payments in the app: Clients pay Providers directly, outside LifeKit,
-          and we do not collect card or bank details for bookings. An earlier version of LifeKit had a wallet whose
+          and we do not collect Clients’ card or bank details. Providers can choose to add payment details — the
+          methods they accept (cash, card, bank transfer) and, for bank transfer, the account holder’s name, IBAN and
+          bank name. The accepted methods are shown on the Provider’s profile. Bank details are shown only to the
+          Client of a booking the Provider has accepted, and only until the Provider confirms payment was received;
+          they are deleted when the Provider removes them, turns off bank transfer or deletes their account. Both
+          parties can also mark a booking as paid or received; we keep that record with the booking. An earlier
+          version of LifeKit had a wallet whose
           card top-ups were processed by Stripe (your full card number went directly to Stripe and was never stored
           on our servers). We keep the records of those wallet transactions (amount, type, date, status) and any
           remaining wallet balance.
